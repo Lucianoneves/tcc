@@ -1,0 +1,63 @@
+.cadastro-usuario-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 100px auto; /* Centraliza na horizontal e dá espaço na vertical */
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center; /* Centraliza o texto e os botões */
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left; /* Garantir que os labels e inputs fiquem alinhados à esquerda */
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;   
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    border: 1px solid #ccc; 
+    border-radius: 4px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.esqueci-senha {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.esqueci-senha button {
+    background-color: transparent;
+    color: #007bff;
+    border: none;
+    cursor: pointer;
+}
+
+.esqueci-senha button:hover {
+    text-decoration: underline;
+}
