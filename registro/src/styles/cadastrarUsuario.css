@@ -1,0 +1,58 @@
+.cadastro-usuario-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(to right, #42a5f5, #1e88e5);
+    padding: 2rem;
+}
+
+.cadastro-box {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 100%;
+}
+
+.cadastro-title {
+    color: #1e88e5;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.cadastro-input {
+    margin-bottom: 1.5rem;
+}
+
+.foto-perfil {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.foto-button {
+    background-color: #1e88e5;
+    color: #fff;
+}
+
+.cadastro-button {
+    background-color: #42a5f5;
+    color: white;
+    width: 100%;
+    margin-top: 1rem;
+    text-transform: none;
+}
+
+.cadastro-button:hover {
+    background-color: #1e88e5;
+}
+
+.cadastro-esqueci {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: #1e88e5;
+}

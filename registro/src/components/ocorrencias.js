@@ -104,7 +104,7 @@ function Ocorrencias() {
 
     return (
         <Container>
-            <Typography variant="h4" gutterBottom>Ocorrências</Typography>
+            <Typography variant="h4" gutterBottom>Ocorrências Registrada</Typography>
             <Typography variant="body1">Selecione as ocorrências que deseja reportar:</Typography>
             
             <List>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TextField, Button, Container, Typography, Box, Alert } from '@mui/material';
 
 function RedefinirSenha() {
     const [email, setEmail] = useState('');
@@ -13,22 +14,45 @@ function RedefinirSenha() {
     };
 
     return (
-        <div className="redefinir-senha-container">
-            <h2>Redefinir Senha</h2>
-            <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                    <label>E-mail</label>
-                    <input
+        <Container maxWidth="sm" style={{ marginTop: '50px' }}>
+            <Box
+                sx={{
+                    padding: '30px',
+                    boxShadow: 3,
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                }}
+            >
+                <Typography variant="h4" gutterBottom align="center">
+                    Redefinir Senha
+                </Typography>
+                <form onSubmit={handleSubmit}>
+                    <TextField
+                        label="E-mail"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        fullWidth
                         required
+                        margin="normal"
                     />
-                </div>
-                <button type="submit">Enviar Link de Redefinição</button>
-            </form>
-            {mensagem && <p>{mensagem}</p>}
-        </div>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        type="submit"
+                        fullWidth
+                        sx={{ marginTop: '15px', padding: '10px 0' }}
+                    >
+                        Enviar Link de Redefinição
+                    </Button>
+                </form>
+                {mensagem && (
+                    <Alert severity="success" sx={{ marginTop: '20px' }}>
+                        {mensagem}
+                    </Alert>
+                )}
+            </Box>
+        </Container>
     );
 }
 
