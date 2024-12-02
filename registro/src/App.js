@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Login from './Signin/login';
 import CadastroUsuario from './SignUp/cadastrarUsuario';
-import Dashboard   from './pages/Dashboard/dashboard';
+
 import RedefinirSenha from './components/redefinirSenha';
 import RegistroProblemas from './components/registroProblemas';
 import Ocorrencias from './components/ocorrencias';
@@ -13,10 +13,12 @@ import Home from './pages/Home';
 import AuthProvider from './contexts/auth';
 import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Private from './routes/Private'
 
 
 
 
+ 
 
 function App() {
     return (
@@ -28,9 +30,9 @@ function App() {
                 <Route path="/" element={<Home />} /> {/* Página inicial */}
                 <Route path="/login" element={<Login />} /> {/* Tela login de cadastro */}
                 <Route path="/cadastrarUsuario" element={<CadastroUsuario />} /> {/* Tela de cadastro */}
-                <Route path="/registroProblemas" element={<RegistroProblemas />} /> {/* Tela de registro */}
+                <Route path="/registroProblemas" element={<Private><RegistroProblemas /></Private>} />
                 <Route path="/redefinir-senha" element={<RedefinirSenha />} /> {/* Tela de redefinir senha */}
-                <Route path="/dashboard" element={<Dashboard/>} /> {/* Tela de redefinir senha */}
+          
                 
                 {/* Rota para a página do Administrador */}
                 <Route path="/admin" element={<AdminPage />} />
