@@ -23,7 +23,7 @@ function Login() {
 
     try {
       await login(email, senha); // Chama a função de login do contexto
-      navigate("/registroProblemas"); // Redireciona para o dashboard após login bem-sucedido
+      navigate("/perfil"); // Redireciona para o dashboard após login bem-sucedido
     } catch (error) {
       console.error("Erro ao fazer login: ", error);
       toast.error("Erro ao fazer login. Verifique suas credenciais.");

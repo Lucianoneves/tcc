@@ -41,7 +41,7 @@ function CadastrarUsuario() {
 
       // Resetando o formulário
       resetForm();
-      navigate('/login'); // Opcional: redirecionar para login após cadastro
+      navigate('/perfil'); // Opcional: redirecionar para login após cadastro
     } catch (error) {
       console.error('Erro ao cadastrar usuário:', error);
       alert('Erro ao cadastrar usuário. Tente novamente mais tarde.');

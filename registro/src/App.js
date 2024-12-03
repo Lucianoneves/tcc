@@ -1,19 +1,22 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import Navbar from './pages/Navbar';
 import Login from './Signin/login';
 import CadastroUsuario from './SignUp/cadastrarUsuario';
+import Perfil from './pages/perfil';
 
-import RedefinirSenha from './components/redefinirSenha';
-import RegistroProblemas from './components/registroProblemas';
-import Ocorrencias from './components/ocorrencias';
-import AdminPage from './components/adminPage';
+
+import RedefinirSenha from './pages/redefinirSenha';
+import RegistroProblemas from './pages/registroProblemas';
+import Ocorrencias from './pages/ocorrencias';
+import AdminPage from './pages/adminPage';
 import Home from './pages/Home';
 import AuthProvider from './contexts/auth';
 import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Private from './routes/Private'
+
 
 
 
@@ -30,7 +33,8 @@ function App() {
                 <Route path="/" element={<Home />} /> {/* Página inicial */}
                 <Route path="/login" element={<Login />} /> {/* Tela login de cadastro */}
                 <Route path="/cadastrarUsuario" element={<CadastroUsuario />} /> {/* Tela de cadastro */}
-                <Route path="/registroProblemas" element={<Private><RegistroProblemas /></Private>} />
+                <Route path="/perfil" element={<Private><Perfil/> </Private>}/>
+                <Route path="/registroProblemas" element={<Private> <RegistroProblemas/></Private>} />
                 <Route path="/redefinir-senha" element={<RedefinirSenha />} /> {/* Tela de redefinir senha */}
           
                 
