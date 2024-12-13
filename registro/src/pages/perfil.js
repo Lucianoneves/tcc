@@ -1,61 +1,73 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, TextField, Container, Box, Typography, Avatar } from "@mui/material";
 import { AuthContext } from "../contexts/auth";
-import { db } from "../services/firebaseConnection";
+import { db, storage } from "../services/firebaseConnection";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useNavigate } from "react-router-dom"; // Importa o hook para navegação
 
 function PerfilUsuario() {
-  const { user, logout } = useContext(AuthContext); // Obter usuário e função de logout do contexto
-  const [nome, setNome] = useState(user?.nome || ""); // Nome do usuário
-  const [email, setEmail] = useState(user?.email || ""); // E-mail do usuário
-  const [telefone, setTelefone] = useState(user?.telefone || ""); // Número de telefone
-  const [endereco, setEndereco] = useState(user?.endereco || ""); // Endereço do usuário
-  const [imageAvatar, setImageAvatar] = useState(user?.photoURL || null); // Foto do perfil
-  const [loading, setLoading] = useState(false); // Para bloquear múltiplas submissões
+  const { user, logout } = useContext(AuthContext);
+  const [nome, setNome] = useState(user?.nome || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [telefone, setTelefone] = useState(user?.telefone || "");
+  const [endereco, setEndereco] = useState(user?.endereco || "");
+  const [imageAvatar, setImageAvatar] = useState(user?.avatarUrl || null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate(); // Hook para navegação
 
   useEffect(() => {
-    const userDocRef = doc(db, "users", user?.uid);
+    if (!user?.uid) return;
+
+    const userDocRef = doc(db, "users", user.uid);
     getDoc(userDocRef)
       .then((docSnap) => {
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          setNome(userData.name);
-          setEmail(userData.email);
-          setTelefone(userData.telefone);
-          setEndereco(userData.endereco);
-          setImageAvatar(userData.photoURL || null);
+          setNome(userData.nome || "");
+          setEmail(userData.email || "");
+          setTelefone(userData.telefone || "");
+          setEndereco(userData.endereco || "");
+          setImageAvatar(userData.avatarUrl || null);
         }
       })
       .catch((error) => console.error("Erro ao carregar dados:", error));
-  }, [user]);
+  }, [user?.uid]);
 
   const handleSalvarAlteracoes = async () => {
-    setLoading(true);
+    if (!user?.uid) {
+      alert("Usuário não identificado.");
+      return;
+    }
 
-    const userDocRef = doc(db, "users", user?.uid);
+    setLoading(true);
+    const userDocRef = doc(db, "users", user.uid);
+
     try {
       const docSnap = await getDoc(userDocRef);
-
       if (docSnap.exists()) {
-        // Atualiza o documento do usuário no Firestore
-        await updateDoc(userDocRef, {
-          name: nome,
-          email: email,
-          telefone: telefone,
-          endereco: endereco,
-          photoURL: imageAvatar, // A foto de perfil
-        });
-        alert("Alterações salvas com sucesso!");
+        const userData = docSnap.data();
+
+        const updates = {};
+        if (userData.nome !== nome.trim()) updates.nome = nome.trim();
+        if (userData.telefone !== telefone.trim()) updates.telefone = telefone.trim();
+        if (userData.endereco !== endereco.trim()) updates.endereco = endereco.trim();
+        if (userData.avatarUrl !== imageAvatar) updates.avatarUrl = imageAvatar;
+
+        if (Object.keys(updates).length > 0) {
+          await updateDoc(userDocRef, updates);
+          alert("Alterações salvas com sucesso!");
+        } else {
+          alert("Nenhuma alteração detectada.");
+        }
       } else {
-        // Se o documento não existir, cria um novo documento
         await setDoc(userDocRef, {
-          name: nome,
-          email: email,
-          telefone: telefone,
-          endereco: endereco,
-          photoURL: imageAvatar,
+          nome: nome.trim(),
+          telefone: telefone.trim(),
+          endereco: endereco.trim(),
+          avatarUrl: imageAvatar,
         });
-        alert("Documento criado e dados salvos com sucesso!");
+        alert("Documento criado com sucesso!");
       }
     } catch (error) {
       console.error("Erro ao salvar as alterações:", error);
@@ -70,11 +82,27 @@ function PerfilUsuario() {
     alert("Você saiu com sucesso!");
   };
 
-  const handleFotoChange = (event) => {
+  const handleFotoChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      setImageAvatar(URL.createObjectURL(file)); // Pré-visualiza a imagem
+    if (!file) return;
+
+    const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+    try {
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      setImageAvatar(downloadURL);
+
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, { photoURL: downloadURL });
+      alert("Foto de perfil atualizada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao alterar a foto de perfil:", error);
+      alert("Erro ao alterar a foto de perfil. Tente novamente.");
     }
+  };
+
+  const handleIrParaRegistroProblemas = () => {
+    navigate("/registroProblemas");
   };
 
   return (
@@ -84,7 +112,6 @@ function PerfilUsuario() {
           Perfil do Usuário
         </Typography>
 
-        {/* Avatar do Usuário */}
         <Box mb={3}>
           <Avatar
             alt="Foto do Usuário"
@@ -97,7 +124,6 @@ function PerfilUsuario() {
           </Button>
         </Box>
 
-        {/* Formulário de Alterações */}
         <Box component="form" sx={{ "& .MuiTextField-root": { mb: 2 }, mt: 2 }}>
           <TextField
             fullWidth
@@ -127,7 +153,6 @@ function PerfilUsuario() {
           />
         </Box>
 
-        {/* Botões */}
         <Box mt={3}>
           <Button
             variant="contained"
@@ -138,8 +163,15 @@ function PerfilUsuario() {
           >
             {loading ? "Salvando..." : "Salvar Alterações"}
           </Button>
-          <Button variant="outlined" color="error" onClick={handleLogout}>
+          <Button variant="outlined" color="error" onClick={handleLogout} sx={{ mr: 2 }}>
             Sair
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleIrParaRegistroProblemas}
+          >
+            Registro de Problemas
           </Button>
         </Box>
       </Box>

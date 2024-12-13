@@ -2,9 +2,10 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/auth';
 import { Box, Button, TextField, Typography, Avatar } from '@mui/material';
+import { toast } from 'react-toastify';
 
 function CadastrarUsuario() {
-  const [nomeCompleto, setNomeCompleto] = useState('');
+  const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
   const [endereco, setEndereco] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -21,7 +22,7 @@ function CadastrarUsuario() {
     e.preventDefault();
 
     // Validações
-    if (!nomeCompleto || !email || !senha || !cpf || !endereco || !telefone) {
+    if (!nome || !email || !senha || !cpf || !endereco || !telefone) {
       alert('Preencha todos os campos obrigatórios!');
       return;
     }
@@ -35,21 +36,22 @@ function CadastrarUsuario() {
       alert('As senhas não coincidem.');
       return;
     }
-
+    
     try {
-      await cadastrarUsuario(nomeCompleto, senha, email, cpf, endereco, telefone);
-
+      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone);
+      
       // Resetando o formulário
       resetForm();
       navigate('/perfil'); // Opcional: redirecionar para login após cadastro
     } catch (error) {
       console.error('Erro ao cadastrar usuário:', error);
-      alert('Erro ao cadastrar usuário. Tente novamente mais tarde.');
+      toast.error("Erro ao fazer o")
+      navigate('cadastroUsuario'); // Se der erro permanecer na mesma pagina
     }
   };
-
+  
   const resetForm = () => {
-    setNomeCompleto('');
+    setNome('');
     setCpf('');
     setEndereco('');
     setTelefone('');
@@ -94,8 +96,8 @@ function CadastrarUsuario() {
         fullWidth
         margin="normal"
         label="Nome Completo"
-        value={nomeCompleto}
-        onChange={(e) => setNomeCompleto(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ''))}
+        value={nome}
+        onChange={(e) => setNome(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ''))}
         inputProps={{ autoComplete: 'new-name' }} // Evita histórico
         required
       />
