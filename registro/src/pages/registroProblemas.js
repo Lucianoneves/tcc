@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, IconButton, Grid, Paper } from '@mui/material';
+import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, IconButton, Grid, Paper, Input } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
@@ -187,6 +187,20 @@ function RegistroProblemas() {
     setSelecionadas((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
+
+  const handleAddImages = (event) => {
+    const files = event.target.files;
+    if (files) {
+      const newImagens = Array.from(files).map(file => URL.createObjectURL(file));
+      setImagens(prevImagens => [...prevImagens, ...newImagens]);
+    }
+  };
+  const handleRemoveImage = (index) => {
+    setImagens(imagens.filter((_, i) => i !== index));
+  };
+  
+  
+
   return (
     <Container maxWidth="sm">
       <Box sx={{ mb: 3 }}>
@@ -267,6 +281,40 @@ function RegistroProblemas() {
           </Typography>
         )}
       </Box>
+    
+      <Box mt={4}>
+  <Typography variant="h6">Adicionar Imagens</Typography>
+  <Input
+    type="file"
+    inputProps={{ accept: "image/*", multiple: true }}
+    onChange={handleAddImages}
+    fullWidth
+  />
+  <Box sx={{ mt: 2 }}>
+    {imagens.length > 0 && (
+      <Grid container spacing={2}>
+        {imagens.map((imagem, index) => (
+          <Grid item xs={4} key={index}>
+            <Paper sx={{ padding: 1 }}>
+              <img src={imagem} alt={`Imagem ${index}`} style={{ width: '100%', height: 'auto' }} />
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => handleRemoveImage(index)}
+                sx={{ mt: 1 }}
+                fullWidth
+              >
+                Remover
+              </Button>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+    )}
+  </Box>
+</Box>
+
+
     </Container>
   );
 }
