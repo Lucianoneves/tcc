@@ -10,7 +10,6 @@ import { db } from "../services/firebaseConnection";
 
 function RegistroProblemas() {
  
-  const navigate = useNavigate(); // Hook para navegação
 
   const [ocorrencias, setOcorrencias] = useState([
     { id: 1, descricao: 'Buraco na rua' },
@@ -28,6 +27,7 @@ function RegistroProblemas() {
   const [melhoria, setMelhoria] = useState('');
   const [imagens, setImagens] = useState([]);
   const { user, logout  } = useContext(AuthContext);
+  const [nomeUsuario, setNomeUsuario] = useState ("");
 
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
@@ -36,7 +36,6 @@ function RegistroProblemas() {
   }
 
   useEffect(() => {
-    
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
     script.async = true;
@@ -102,83 +101,49 @@ function RegistroProblemas() {
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
 
-
   const handleSubmit = async () => {
     if (!selecionadas.length) {
       alert("Selecione pelo menos uma ocorrência.");
       return;
     }
 
-    const novaOcorrenciaData = {
-      titulo: novaOcorrencia.trim(),
-      descricao: novaOcorrencia.trim(),
-      data: new Date().toISOString(),
-      usuarioId: user.uid, // Aqui está a associação com o usuário
-    };
-    
-  
-    const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
-    const userUid = user?.uid; // Obtenha o UID do usuário logado do contexto
-  
-    if (!userUid) {
+    if (!user?.uid ) {
       alert("Usuário não identificado. Faça login novamente.");
       return;
     }
-  
+
+    const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
+
     try {
-      // Cria um array de promessas
+      // Cria um array de promessas para registrar as ocorrências no Firestore
       const registros = ocorrenciasSelecionadas.map((o) =>
         addDoc(collection(db, "problemas"), {
-          uid: userUid,
+          usuarioId: user.uid,
+          nomeUsuario: nomeUsuario,
           descricao: o.descricao,
           localizacao: localizacao || "Não especificada",
           data: new Date().toISOString(),
           melhoria,
+          imagens: imagens,
         })
       );
   
+     
+
       // Aguarda todas as promessas serem resolvidas
       await Promise.all(registros);
-  
+
       alert("Ocorrências registradas com sucesso!");
-      setSelecionadas([]); // Limpa as seleções
-      setMelhoria(""); // Limpa a sugestão
+      setSelecionadas([]);
+      setMelhoria("");
     } catch (error) {
       console.error("Erro ao registrar ocorrências:", error);
       alert("Erro ao registrar as ocorrências. Tente novamente.");
     }
   };
+  
 
 
-  const handleReg = async () => {
-    if (!user?.uid) {
-      alert("Usuário não autenticado.");
-      return;
-    }
-  
-    if (!novaOcorrencia.trim()) {
-      alert("Por favor, preencha a descrição da nova ocorrência.");
-      return;
-    }
-  
-    const novaOcorrenciaData = {
-      titulo: novaOcorrencia.trim(),
-      descricao: novaOcorrencia.trim(), // Certifique-se de passar corretamente os dados
-      data: new Date().toISOString(),
-      usuarioId: user.uid,
-    };
-  
-    try {
-      await addDoc(collection(db, "ocorrencias"), novaOcorrenciaData);
-      alert("Ocorrência registrada com sucesso!");
-  
-      // Limpa os campos após o registro
-      setNovaOcorrencia(""); // Limpar a descrição da ocorrência
-    } catch (error) {
-      console.error("Erro ao registrar ocorrência:", error);
-      alert("Erro ao registrar a ocorrência. Tente novamente.");
-    }
-  };  
 
   
  
@@ -312,6 +277,7 @@ function RegistroProblemas() {
       </Grid>
     )}
   </Box>
+
 </Box>
 
 

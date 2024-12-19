@@ -1,10 +1,11 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Button, TextField, Container, Box, Typography, Avatar } from "@mui/material";
+import { Button, TextField, Container, Box, List, ListItem, Typography, Avatar } from "@mui/material";
 import { AuthContext } from "../contexts/auth";
 import { db, storage } from "../services/firebaseConnection";
-import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc,getDocs, updateDoc, setDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom"; // Importa o hook para navegação
+import { updateProfile } from "firebase/auth";
 
 function PerfilUsuario() {
   const { user, logout } = useContext(AuthContext);
@@ -15,6 +16,7 @@ function PerfilUsuario() {
   const [imageAvatar, setImageAvatar] = useState(user?.avatarUrl || null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate(); // Hook para navegação
+  const [ocorrencias, setOcorrencias] = useState([]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -103,7 +105,23 @@ function PerfilUsuario() {
 
   const handleIrParaRegistroProblemas = () => {
     navigate("/registroProblemas");
+  };  
+
+
+  const fetchOcorrencias = async () => {
+    const querySnapshot = await getDocs(collection(db, "ocorrencias"));
+    const ocorrenciasData = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setOcorrencias(ocorrenciasData);
   };
+
+  fetchOcorrencias();
+
+
+
+
 
   return (
     <Container maxWidth="sm">
@@ -175,6 +193,19 @@ function PerfilUsuario() {
           </Button>
         </Box>
       </Box>
+
+      <List>
+      {ocorrencias.map((o) => (
+    <ListItem key={o.id}>
+      <Typography>
+        Ocorrência: {o.descricao} - Registrada por: {o.usuarioNome} (ID: {o.usuarioId})
+      </Typography>
+    </ListItem>
+  ))}
+</List>
+
+
+
     </Container>
   );
 }

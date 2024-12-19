@@ -55,67 +55,8 @@ useEffect(() => {
 return () => unsubscribe(); // Limpa o listener ao desmontar
 }, []);
 
-
- 
-
-const fetchUserOcorrencias = async (userId) => {
-  if (!userId) return;
-
-  const q = query(
-    collection(db, "ocorrencias"),
-    where("usuarioId", "==", userId) // Filtra as ocorrências pelo usuárioId
-  );
-
-  try {
-    const querySnapshot = await getDocs(q);
-    const ocorrencias = [];
-
-    querySnapshot.forEach((doc) => {
-      ocorrencias.push({
-        id: doc.id,
-        ...doc.data(),
-      });
-    });
-
-    return ocorrencias; // Retorna as ocorrências encontradas
-  } catch (error) {
-    console.error("Erro ao buscar ocorrências:", error);
-    return [];
-  }
-};
-
-
    
 
-const handleRegistro = async () => { 
-
-  if (!user?.uid) {
-    alert("Usuário não autenticado.");
-    return;
-  }
-
-  if (!titulo.trim() || !descricao.trim()) {
-    alert("Por favor, preencha todos os campos.");
-    return;
-  }
-
-  const novaOcorrencia = {
-    titulo: titulo.trim(),
-    descricao: descricao.trim(),
-    data: new Date(),
-    usuarioId: user.uid,
-  };
-
-  try {
-    await addDoc(collection(db, "ocorrencias"), novaOcorrencia);
-    alert("Ocorrência registrada com sucesso!");
-    setTitulo(""); // Limpa o título após o registro
-    setDescricao(""); // Limpa a descrição após o registro
-  } catch (error) {
-    console.error("Erro ao registrar ocorrência:", error);
-    alert("Erro ao registrar a ocorrência. Tente novamente.");
-  }
-}
 
 function storageUser(userData) {
   localStorage.setItem("@tickesPRO", JSON.stringify(userData));
@@ -124,12 +65,6 @@ function storageUser(userData) {
 
   //Ocorrencias por usuario //
 
-const getOcorrenciasPorUsuario = async (uid) => {
-  const q = query(collection(db, "ocorrencias"), where("usuarioId", "==", uid));
-  const querySnapshot = await getDocs(q);
-  const ocorrencias = querySnapshot.docs.map(doc => doc.data());
-  return ocorrencias;
-};
 
 
 
@@ -194,6 +129,7 @@ const handleReg = async () => {
     descricao: descricao.trim(),
     data: new Date(),
     usuarioId: user.uid, // Associa o ID do usuário à ocorrência
+    nomeUsuario: user.nome, // Adiciona o nome do usuário à ocorrência
   };
 
   try {
