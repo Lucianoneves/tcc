@@ -18,6 +18,7 @@ function RegistroProblemas() {
     { id: 4, descricao: 'Descarte irregular de lixo' },
     { id: 5, descricao: 'Vazamento de água' },
   ]);
+
   const [selecionadas, setSelecionadas] = useState([]);
   const [novaOcorrencia, setNovaOcorrencia] = useState('');
   const [localizacao, setLocalizacao] = useState('');
@@ -28,9 +29,8 @@ function RegistroProblemas() {
   const [imagens, setImagens] = useState([]);
   const { user, logout, handleReg  } = useContext(AuthContext);
   const [nomeUsuario, setNomeUsuario] = useState ("");
-
-
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
 
   async function handleLogout() {
     await logout();
@@ -46,6 +46,32 @@ function RegistroProblemas() {
       document.body.removeChild(script);
     };
   }, [apiKey]);
+
+
+  useEffect(() => {
+    // Carregar as ocorrências do localStorage ao inicializar o componente
+    const ocorrenciasSalvas = JSON.parse(localStorage.getItem('ocorrencias'));
+    if (ocorrenciasSalvas) {
+      setOcorrencias(ocorrenciasSalvas);
+    }
+  }, []);
+
+
+  useEffect(() => {
+    // Salvar a lista de ocorrências no localStorage sempre que for alterada
+    localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
+  }, [ocorrencias]);
+
+  const handleAddOcorrencia = () => {
+    if (novaOcorrencia.trim()) {
+      const nova = { id: ocorrencias.length + 1, descricao: novaOcorrencia };
+      setOcorrencias((prev) => [...prev, nova]);
+      setNovaOcorrencia('');
+    } else {
+      alert('Por favor, descreva a nova ocorrência.');
+    }
+  };
+  
 
   const obterLocalizacao = () => {
     if (navigator.geolocation) {
@@ -233,12 +259,26 @@ function RegistroProblemas() {
           <Button
             variant="contained"
             color="secondary"
-            onClick={() => setOcorrencias([...ocorrencias, { id: ocorrencias.length + 1, descricao: novaOcorrencia }])}
+            onClick={() =>  {
+                if (novaOcorrencia.trim()) {
+              // Adicionando a nova ocorrência ao estado
+              setOcorrencias([
+                ...ocorrencias, 
+                { id: ocorrencias.length + 1, descricao: novaOcorrencia }
+              ]);
+              // Limpando o campo de texto
+              setNovaOcorrencia('');
+            } else {
+              alert('Por favor, descreva a nova ocorrência.');
+            }
+          }}
+        
           >
             Adicionar
           </Button>
         </Box>
       </Box>
+      
 
       <Box mt={4}>
         <Typography variant="h6">Localização Atual</Typography>
