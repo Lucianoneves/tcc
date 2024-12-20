@@ -26,8 +26,9 @@ function RegistroProblemas() {
   const [resultadoEndereco, setResultadoEndereco] = useState('');
   const [melhoria, setMelhoria] = useState('');
   const [imagens, setImagens] = useState([]);
-  const { user, logout  } = useContext(AuthContext);
+  const { user, logout, handleReg  } = useContext(AuthContext);
   const [nomeUsuario, setNomeUsuario] = useState ("");
+
 
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
@@ -107,8 +108,15 @@ function RegistroProblemas() {
       return;
     }
 
-    if (!user?.uid ) {
+    if (!user) {
       alert("Usuário não identificado. Faça login novamente.");
+      return;
+    }
+
+    console.log("Nome do usuário:", user.nome);
+
+    if (!user.nome) {
+      console.error("Nome do usuário não encontrado.");
       return;
     }
 
@@ -119,7 +127,7 @@ function RegistroProblemas() {
       const registros = ocorrenciasSelecionadas.map((o) =>
         addDoc(collection(db, "problemas"), {
           usuarioId: user.uid,
-          nomeUsuario: nomeUsuario,
+          nomeUsuario: user.nome, // Aqui você está pegando o nome do usuário do contexto
           descricao: o.descricao,
           localizacao: localizacao || "Não especificada",
           data: new Date().toISOString(),
@@ -166,6 +174,16 @@ function RegistroProblemas() {
   
   
 
+  if (!user) {
+    return (
+      <Container maxWidth="sm">
+        <Typography variant="h6" color="error" gutterBottom>
+          Usuário não autenticado.
+        </Typography>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="sm">
       <Box sx={{ mb: 3 }}>
@@ -176,6 +194,11 @@ function RegistroProblemas() {
       <Paper sx={{ padding: 3, mb: 4 }}>
         <Typography variant="h5" gutterBottom>
           Registrar Ocorrências da sua Região
+        </Typography>
+
+        {/* Exibindo o nome do usuário */}
+        <Typography variant="subtitle1" gutterBottom>
+          Bem-vindo, {user.nome}!
         </Typography>
 
         <List>
@@ -246,43 +269,40 @@ function RegistroProblemas() {
           </Typography>
         )}
       </Box>
-    
+
       <Box mt={4}>
-  <Typography variant="h6">Adicionar Imagens</Typography>
-  <Input
-    type="file"
-    inputProps={{ accept: "image/*", multiple: true }}
-    onChange={handleAddImages}
-    fullWidth
-  />
-  <Box sx={{ mt: 2 }}>
-    {imagens.length > 0 && (
-      <Grid container spacing={2}>
-        {imagens.map((imagem, index) => (
-          <Grid item xs={4} key={index}>
-            <Paper sx={{ padding: 1 }}>
-              <img src={imagem} alt={`Imagem ${index}`} style={{ width: '100%', height: 'auto' }} />
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => handleRemoveImage(index)}
-                sx={{ mt: 1 }}
-                fullWidth
-              >
-                Remover
-              </Button>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-    )}
-  </Box>
-
-</Box>
-
-
+        <Typography variant="h6">Adicionar Imagens</Typography>
+        <Input
+          type="file"
+          inputProps={{ accept: "image/*", multiple: true }}
+          onChange={handleAddImages}
+          fullWidth
+        />
+        <Box sx={{ mt: 2 }}>
+          {imagens.length > 0 && (
+            <Grid container spacing={2}>
+              {imagens.map((imagem, index) => (
+                <Grid item xs={4} key={index}>
+                  <Paper sx={{ padding: 1 }}>
+                    <img src={imagem} alt={`Imagem ${index}`} style={{ width: '100%', height: 'auto' }} />
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => handleRemoveImage(index)}
+                      sx={{ mt: 1 }}
+                      fullWidth
+                    >
+                      Remover
+                    </Button>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
+      </Box>
     </Container>
   );
-}
+};
 
 export default RegistroProblemas;
