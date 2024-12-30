@@ -11,16 +11,10 @@ import { db } from "../services/firebaseConnection";
 function RegistroProblemas() {
  
 
-  const [ocorrencias, setOcorrencias] = useState([
-    { id: 1, descricao: 'Buraco na rua' },
-    { id: 2, descricao: 'Lâmpada queimada' },
-    { id: 3, descricao: 'Alagamento' },
-    { id: 4, descricao: 'Descarte irregular de lixo' },
-    { id: 5, descricao: 'Vazamento de água' },
-  ]);
+  
+
 
   const [selecionadas, setSelecionadas] = useState([]);
-  const [novaOcorrencia, setNovaOcorrencia] = useState('');
   const [localizacao, setLocalizacao] = useState('');
   const [erroLocalizacao, setErroLocalizacao] = useState(null);
   const [enderecoManual, setEnderecoManual] = useState('');
@@ -29,6 +23,9 @@ function RegistroProblemas() {
   const [imagens, setImagens] = useState([]);
   const { user, logout, handleReg  } = useContext(AuthContext);
   const [nomeUsuario, setNomeUsuario] = useState ("");
+
+ 
+
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 
@@ -48,30 +45,53 @@ function RegistroProblemas() {
   }, [apiKey]);
 
 
+ 
+
+
+  const [ocorrencias, setOcorrencias] = useState([]);
+  const [novaOcorrencia, setNovaOcorrencia] = useState('');
+
   useEffect(() => {
-    // Carregar as ocorrências do localStorage ao inicializar o componente
-    const ocorrenciasSalvas = JSON.parse(localStorage.getItem('ocorrencias'));
+    // Tentamos carregar as ocorrências do localStorage
+    const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
     if (ocorrenciasSalvas) {
-      setOcorrencias(ocorrenciasSalvas);
+      // Se encontrarmos as ocorrências salvas, convertemos para array e setamos no estado
+      setOcorrencias(JSON.parse(ocorrenciasSalvas));
+    } else {
+      // Caso não existam ocorrências no localStorage, usamos valores padrão
+      const ocorrenciasPadrao = [
+        { id: 1, descricao: 'Buraco na rua' },
+        { id: 2, descricao: 'Lâmpada queimada' },
+        { id: 3, descricao: 'Alagamento' },
+        { id: 4, descricao: 'Descarte irregular de lixo' },
+        { id: 5, descricao: 'Vazamento de água' },
+      ];
+      // Salvamos os valores padrão no localStorage
+      localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasPadrao));
+      setOcorrencias(ocorrenciasPadrao);
     }
   }, []);
 
-
   useEffect(() => {
     // Salvar a lista de ocorrências no localStorage sempre que for alterada
-    localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
+    if (ocorrencias.length > 0) {
+      localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
+    }
   }, [ocorrencias]);
 
   const handleAddOcorrencia = () => {
     if (novaOcorrencia.trim()) {
-      const nova = { id: ocorrencias.length + 1, descricao: novaOcorrencia };
+      const nova = { id: Date.now(), descricao: novaOcorrencia }; // Use Date.now() para IDs únicos
       setOcorrencias((prev) => [...prev, nova]);
       setNovaOcorrencia('');
     } else {
       alert('Por favor, descreva a nova ocorrência.');
     }
   };
-  
+
+
+
+
 
   const obterLocalizacao = () => {
     if (navigator.geolocation) {
@@ -127,6 +147,7 @@ function RegistroProblemas() {
       })
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
+
 
   const handleSubmit = async () => {
     if (!selecionadas.length) {
