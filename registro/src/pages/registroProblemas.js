@@ -8,10 +8,8 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 
 
-function RegistroProblemas() {
- 
 
-  
+function RegistroProblemas() {  
 
 
   const [selecionadas, setSelecionadas] = useState([]);
@@ -22,7 +20,10 @@ function RegistroProblemas() {
   const [melhoria, setMelhoria] = useState('');
   const [imagens, setImagens] = useState([]);
   const { user, logout, handleReg  } = useContext(AuthContext);
-  const [nomeUsuario, setNomeUsuario] = useState ("");
+  const [nomeUsuario, setNomeUsuario] = useState ("");  
+  const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const navigate = useNavigate(); // Hook para redirecionamento
 
  
 
@@ -32,6 +33,8 @@ function RegistroProblemas() {
   async function handleLogout() {
     await logout();
   }
+
+
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -50,6 +53,17 @@ function RegistroProblemas() {
 
   const [ocorrencias, setOcorrencias] = useState([]);
   const [novaOcorrencia, setNovaOcorrencia] = useState('');
+
+
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login'); // Redireciona para a página de login se o usuário não estiver autenticado
+    }
+  }, [user, navigate]);
+
+
+
 
   useEffect(() => {
     // Tentamos carregar as ocorrências do localStorage
@@ -88,6 +102,50 @@ function RegistroProblemas() {
       alert('Por favor, descreva a nova ocorrência.');
     }
   };
+const handleSubmit = async () => {
+  if (!selecionadas.length) {
+    alert("Selecione pelo menos uma ocorrência.");
+    return;
+  }
+  if (!user) {
+    alert("Usuário não identificado. Faça login novamente.");
+    return;
+  }
+
+  console.log("Nome do usuário:", user.nome);
+
+  if (!user.nome) {
+    console.error("Nome do usuário não encontrado.");
+    return;
+  }
+
+  const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
+
+  try {
+    // Cria um array de promessas para registrar as ocorrências no Firestore
+    const registros = ocorrenciasSelecionadas.map((o) =>
+      addDoc(collection(db, "problemas"), {
+        usuarioId: user.uid,
+        nomeUsuario: user.nome,
+        descricao: o.descricao,
+        localizacao: localizacao || "Não especificada",
+        data: new Date().toISOString(),
+        melhoria,
+        imagens: imagens,
+      })
+    );
+    // Aguarda todas as promessas serem resolvidas
+    await Promise.all(registros);
+
+    alert("Ocorrências registradas com sucesso!");
+    setSelecionadas([]);  // Clear selected occurrences
+    setMelhoria("");  // Clear improvement field
+  } catch (error) {
+    console.error("Erro ao registrar ocorrências:", error);
+    alert("Erro ao registrar as ocorrências. Tente novamente.");
+  }
+};
+
 
 
 
@@ -148,33 +206,33 @@ function RegistroProblemas() {
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
 
-
-  const handleSubmit = async () => {
+  const handleSubmitNovaOcorrencia  = async () => {
     if (!selecionadas.length) {
       alert("Selecione pelo menos uma ocorrência.");
       return;
     }
-
+  
     if (!user) {
       alert("Usuário não identificado. Faça login novamente.");
       return;
     }
-
-    console.log("Nome do usuário:", user.nome);
-
+  
+    // Check the user object
+    console.log(user);
+  
     if (!user.nome) {
       console.error("Nome do usuário não encontrado.");
       return;
     }
-
+  
     const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
-
+  
     try {
       // Cria um array de promessas para registrar as ocorrências no Firestore
       const registros = ocorrenciasSelecionadas.map((o) =>
         addDoc(collection(db, "problemas"), {
           usuarioId: user.uid,
-          nomeUsuario: user.nome, // Aqui você está pegando o nome do usuário do contexto
+          nomeUsuario: user.nome, // Pega o nome do usuário do contexto
           descricao: o.descricao,
           localizacao: localizacao || "Não especificada",
           data: new Date().toISOString(),
@@ -183,19 +241,18 @@ function RegistroProblemas() {
         })
       );
   
-     
-
       // Aguarda todas as promessas serem resolvidas
       await Promise.all(registros);
-
+  
       alert("Ocorrências registradas com sucesso!");
-      setSelecionadas([]);
-      setMelhoria("");
+      setSelecionadas([]);  // Limpar as ocorrências selecionadas
+      setMelhoria("");  // Limpar o campo de melhoria
     } catch (error) {
       console.error("Erro ao registrar ocorrências:", error);
       alert("Erro ao registrar as ocorrências. Tente novamente.");
     }
   };
+  
   
 
 
@@ -260,7 +317,7 @@ function RegistroProblemas() {
         </List>
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          <Button variant="contained" color="primary" onClick={handleSubmit} fullWidth>
+          <Button variant="contained" color="primary" onClick={handleSubmitNovaOcorrencia } fullWidth>
             Registrar Ocorrências
           </Button>
         </Box>
@@ -353,6 +410,9 @@ function RegistroProblemas() {
                       sx={{ mt: 1 }}
                       fullWidth
                     >
+
+
+                    
                       Remover
                     </Button>
                   </Paper>

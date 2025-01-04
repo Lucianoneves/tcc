@@ -14,7 +14,7 @@ function Login() {
   const navigate = useNavigate();
 
   // Obtendo a função de login e o estado de carregamento do contexto
-  const { login, loadingAuth, user } = useContext(AuthContext);
+  const { login, loadingAuth, user } = useContext(AuthContext); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();

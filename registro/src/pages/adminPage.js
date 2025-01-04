@@ -14,14 +14,12 @@ function AdminPage() {
         if (senha === senhaCorreta) {
             setAutenticado(true); // Se a senha estiver correta, permitir acesso aos botões
             setErro(false);
+            localStorage.setItem('isAdmin', 'true'); // Salva o status de admin no localStorage
+            navigate('/ocorrencias'); // Redireciona para a página de ocorrências
         } else {
             setErro(true); // Se a senha estiver incorreta, exibir erro
             setAutenticado(false);
         }
-    };
-
-    const handleChangePage = (page) => {
-        navigate(page); // Redireciona para a página escolhida
     };
 
     return (
@@ -62,13 +60,12 @@ function AdminPage() {
                         <Button
                             variant="contained"
                             color="secondary"
-                            onClick={() => handleChangePage('/ocorrencias')}
+                            onClick={() => navigate('/ocorrencias')}
                             fullWidth
                             style={{ marginBottom: '1rem' }}
                         >
                             Gerenciar Ocorrências
                         </Button>
-                        {/* Adicione outros botões se necessário */}
                         <Button
                             variant="outlined"
                             color="primary"

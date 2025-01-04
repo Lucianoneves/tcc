@@ -1,196 +1,239 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Checkbox, Button, TextField, Select, MenuItem, List, ListItem, ListItemText, ListItemSecondaryAction, FormControl, InputLabel, Snackbar } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import {
+    Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem
+} from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
+import {db } from "../services/firebaseConnection";
+import { addDoc, collection }from "firebase/firestore";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
 
-// Definir cores para cada status
-const StatusSpan = styled('span')(({ theme, status }) => ({
+const StatusSpan = styled('span')(({ status }) => ({
     padding: '4px 8px',
     borderRadius: '4px',
     color: '#fff',
-    backgroundColor: status === 'Em análise' 
-        ? '#ff9800' 
-        : status === 'Pendente' 
-        ? '#f44336' 
-        : status === 'Concluído' 
-        ? '#4caf50' 
-        : '#9e9e9e'
+    backgroundColor:
+        status === 'Em análise' ? '#ff9800' :
+        status === 'Pendente' ? '#f44336' :
+        status === 'Concluído' ? '#4caf50' : '#9e9e9e'
 }));
 
+const Ocorrencias = () => {
+    const navigate = useNavigate();
+    const [ocorrencias, setOcorrencias] = useState([]);
+    const [novaOcorrencia, setNovaOcorrencia] = useState('');
+    const [descricaoEditada, setDescricaoEditada] = useState('');
+    const [statusEditado, setStatusEditado] = useState('');
+    const [editandoOcorrencia, setEditandoOcorrencia] = useState(null);
+    const [selecionadas, setSelecionadas] = useState([]);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  
+    useEffect(() => {
+        const usuarioAdmin = localStorage.getItem('isAdmin');
+        if (usuarioAdmin !== 'true') {
+            navigate('/login');  // Redirecionar para login se não for admin
+        }
+    }, [navigate]);
+
+    useEffect(() => {
+        const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
+        if (ocorrenciasSalvas) {
+            setOcorrencias(JSON.parse(ocorrenciasSalvas));
+        } else {
+            const ocorrenciasPadrao = [
+                { id: 1, descricao: 'Buraco na rua', status: 'Pendente' },
+                { id: 2, descricao: 'Lâmpada queimada', status: 'Pendente' },
+            ];
+            setOcorrencias(ocorrenciasPadrao);
+            localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasPadrao));
+        }
+    }, []);
+
+    useEffect(() => {
+        if (ocorrencias.length > 0) {
+            localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
+        }
+    }, [ocorrencias]);
+
+    const handleSalvarEdicao = (id) => {
+        if (descricaoEditada.trim() && statusEditado) {
+            setOcorrencias((prev) =>
+                prev.map((ocorrencia) =>
+                    ocorrencia.id === id
+                        ? { ...ocorrencia, descricao: descricaoEditada, status: statusEditado }
+                        : ocorrencia
+                )
+            );
+            setEditandoOcorrencia(null);
+            setSnackbarMessage('Ocorrência editada com sucesso!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+        } else {
+            setSnackbarMessage('Preencha todos os campos para salvar.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+        }
+    };
+
+    const handleRemoverOcorrencia = (id) => {
+        setOcorrencias((prev) => prev.filter((ocorrencia) => ocorrencia.id !== id));
+        setSnackbarMessage('Ocorrência removida com sucesso!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+    };
+
+    const handleAdicionarOcorrencia = async () => {
+        if (novaOcorrencia.trim()) {
+            const nova = {
+                descricao: novaOcorrencia,
+                status: 'Pendente',
+                data: new Date(),
+            };
     
-    const Ocorrencias = () => {
-        const [ocorrencias, setOcorrencias] = useState([]);
-        const [novaOcorrencia, setNovaOcorrencia] = useState('');
-        const [descricaoEditada, setDescricaoEditada] = useState('');
-        const [statusEditado, setStatusEditado] = useState('');
-        const [editandoOcorrencia, setEditandoOcorrencia] = useState(null);
-        const [isAdmin, setIsAdmin] = useState(true); // Exemplo: verificar se o usuário é admin
-        const [selecionadas, setSelecionadas] = useState([]);
-        const [snackbarOpen, setSnackbarOpen] = useState(false);
+            try {
+                // Adicionar no Firestore
+                const docRef = await addDoc(collection(db, "ocorrencias"), nova);
+                console.log("Ocorrência registrada com ID:", docRef.id);
     
-        // Carregar as ocorrências do localStorage
-        useEffect(() => {
-            const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
-            if (ocorrenciasSalvas) {
-                setOcorrencias(JSON.parse(ocorrenciasSalvas));
-            } else {
-                const ocorrenciasPadrao = [
-                    { id: 1, descricao: 'Buraco na rua', status: 'Pendente' },
-                    { id: 2, descricao: 'Lâmpada queimada', status: 'Pendente' },
-                    { id: 3, descricao: 'Alagamento', status: 'Pendente' },
-                    { id: 4, descricao: 'Descarte irregular de lixo', status: 'Pendente' },
-                    { id: 5, descricao: 'Vazamento de água', status: 'Pendente' },
-                ];
-                setOcorrencias(ocorrenciasPadrao);
-                localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasPadrao));
+                // Adicionar no estado para atualizar a UI
+                setOcorrencias((prev) => [
+                    ...prev,
+                    { id: docRef.id, ...nova },
+                ]);
+                setNovaOcorrencia('');  // Limpar o campo de entrada
+                setSnackbarMessage('Ocorrência adicionada com sucesso!');
+                setSnackbarSeverity('success');
+                setSnackbarOpen(true);
+            } catch (error) {
+                console.error("Erro ao adicionar ocorrência: ", error);
+                setSnackbarMessage('Erro ao adicionar a ocorrência.');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
             }
-        }, []);
+        } else {
+            setSnackbarMessage('Por favor, descreva a nova ocorrência.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+        }
+    };
     
-        // Salvar as ocorrências no localStorage
-        useEffect(() => {
-            if (ocorrencias.length > 0) {
-                localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
-            }
-        }, [ocorrencias]);
-    
-        // Salvar alterações na ocorrência editada
-        const handleSalvarEdicao = (id) => {
-            setOcorrencias(ocorrencias.map((ocorrencia) =>
-                ocorrencia.id === id
-                    ? { ...ocorrencia, descricao: descricaoEditada, status: statusEditado }
-                    : ocorrencia
-            ));
-            setEditandoOcorrencia(null); // Limpar o estado de edição
-            setDescricaoEditada(''); // Limpar o campo de descrição
-            setStatusEditado(''); // Limpar o campo de status
-        };
-    
-        // Iniciar a edição de uma ocorrência
-        const handleIniciarEdicao = (ocorrencia) => {
-            setDescricaoEditada(ocorrencia.descricao);
-            setStatusEditado(ocorrencia.status);
-            setEditandoOcorrencia(ocorrencia.id);
-        };
-    
-        // Remover ocorrência
-        const handleRemoverOcorrencia = (id) => {
-            const novaLista = ocorrencias.filter((ocorrencia) => ocorrencia.id !== id);
-            setOcorrencias(novaLista);
-        };
-    
-        // Adicionar nova ocorrência
-        const handleAdicionarOcorrencia = () => {
-            if (novaOcorrencia.trim()) {
-                const nova = { id: ocorrencias.length + 1, descricao: novaOcorrencia, status: 'Pendente' };
-                setOcorrencias((prev) => [...prev, nova]);
-                setNovaOcorrencia('');
-            } else {
-                alert('Por favor, descreva a nova ocorrência.');
-            }
-        };
-    
-        // Função para enviar as ocorrências para o órgão público
-        const handleSubmit = () => {
-            console.log('Ocorrências enviadas:', ocorrencias);
-            setSnackbarOpen(true); // Exibe o Snackbar de sucesso
-        };
-    
-        // Função para lidar com mudanças no checkbox
-        const handleCheckboxChange = (id) => {
-            setSelecionadas((prevSelecionadas) => {
-                // Verificar se a ocorrência já está selecionada
-                if (prevSelecionadas.includes(id)) {
-                    // Se estiver, removemos ela da lista de selecionadas
-                    return prevSelecionadas.filter((item) => item !== id);
-                } else {
-                    // Se não estiver, adicionamos ela à lista de selecionadas
-                    return [...prevSelecionadas, id];
-                }
-            });
-        };
-    
-        // Fechar Snackbar
-        const handleCloseSnackbar = () => {
-            setSnackbarOpen(false);
-        };
-    
-        return (
-            <Container>
-                <Typography variant="h4" gutterBottom>Ocorrências Registradas</Typography>
-                <Typography variant="body1">Selecione as ocorrências que deseja reportar:</Typography>
-    
-                <List>
-                    {ocorrencias.map((ocorrencia) => (
-                        <ListItem key={ocorrencia.id}>
-                            {editandoOcorrencia === ocorrencia.id ? (
-                                <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-                                    <TextField
-                                        variant="outlined"
-                                        value={descricaoEditada}
-                                        onChange={(e) => setDescricaoEditada(e.target.value)}
-                                        style={{ marginRight: 8 }}
-                                    />
-                                    <FormControl variant="outlined" style={{ marginRight: 8, minWidth: 120 }}>
-                                        <InputLabel>Status</InputLabel>
-                                        <Select
-                                            value={statusEditado}
-                                            onChange={(e) => setStatusEditado(e.target.value)}
-                                            label="Status"
-                                        >
-                                            <MenuItem value="Em análise">Em análise</MenuItem>
-                                            <MenuItem value="Pendente">Pendente</MenuItem>
-                                            <MenuItem value="Concluído">Concluído</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                    {isAdmin && <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">Salvar</Button>}
-                                </div>
-                            ) : (
-                                <ListItemText>
-                                    <Checkbox
-                                        checked={selecionadas.includes(ocorrencia.id)}
-                                        onChange={() => handleCheckboxChange(ocorrencia.id)}
-                                    />
-                                    {ocorrencia.descricao} -
-                                    <StatusSpan status={ocorrencia.status}>
-                                        {ocorrencia.status}
-                                    </StatusSpan>
-                                    {isAdmin && <Button onClick={() => handleIniciarEdicao(ocorrencia)} variant="outlined" color="primary" style={{ marginLeft: 8 }}>Editar</Button>}
-                                    {isAdmin && <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} variant="outlined" color="secondary" style={{ marginLeft: 8 }}>Remover</Button>}
-                                </ListItemText>
-                            )}
-                        </ListItem>
-                    ))}
-                </List>
-    
-                <Button onClick={handleSubmit} variant="contained" color="primary">Enviar Ocorrências para Órgão Público</Button>
-    
-                {isAdmin && (
-                    <div style={{ marginTop: 20 }}>
-                        <Typography variant="h6">Adicionar Nova Ocorrência</Typography>
-                        <TextField
-                            variant="outlined"
-                            value={novaOcorrencia}
-                            onChange={(e) => setNovaOcorrencia(e.target.value)}
-                            placeholder="Descreva a nova ocorrência"
-                            fullWidth
-                        />
-                        <Button onClick={handleAdicionarOcorrencia} variant="contained" color="primary" style={{ marginTop: 10 }}>Adicionar Ocorrência</Button>
-                    </div>
-                )}
-    
-                <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-                    <Alert onClose={handleCloseSnackbar} severity="success">
-                        Ocorrências registradas com sucesso!
-                    </Alert>
-                </Snackbar>
-            </Container>
+
+    const handleSubmit = () => {
+        console.log('Ocorrências enviadas:', ocorrencias.filter((ocorrencia) =>
+            selecionadas.includes(ocorrencia.id)
+        ));
+        setSnackbarMessage('Ocorrências enviadas com sucesso!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+    };
+
+    const handleCheckboxChange = (id) => {
+        setSelecionadas((prevSelecionadas) =>
+            prevSelecionadas.includes(id)
+                ? prevSelecionadas.filter((item) => item !== id)
+                : [...prevSelecionadas, id]
         );
-    }
-    
-    export default Ocorrencias;
+    };
+
+    const handleSelectAll = () => {
+        setSelecionadas(ocorrencias.map((ocorrencia) => ocorrencia.id));
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbarOpen(false);
+    };
+
+    const handleSair = () => {
+        localStorage.removeItem('isAdmin');
+        navigate('/login'); // Redireciona para a página de login
+    };
+
+    return (
+        <Container>
+            <Typography variant="h4" gutterBottom>Ocorrências</Typography>
+            <Button onClick={handleSelectAll} variant="outlined" color="primary">
+                Selecionar Todas
+            </Button>
+            <Button onClick={handleSair} variant="outlined" color="secondary">
+                Sair
+            </Button>
+            <List>
+                {ocorrencias.map((ocorrencia) => (
+                    <ListItem key={ocorrencia.id}>
+                        <Checkbox
+                            checked={selecionadas.includes(ocorrencia.id)}
+                            onChange={() => handleCheckboxChange(ocorrencia.id)}
+                        />
+                        {editandoOcorrencia === ocorrencia.id ? (
+                            <>
+                                <TextField
+                                    value={descricaoEditada}
+                                    onChange={(e) => setDescricaoEditada(e.target.value)}
+                                    fullWidth
+                                    label="Descrição"
+                                />
+                                <TextField
+                                    value={statusEditado}
+                                    onChange={(e) => setStatusEditado(e.target.value)}
+                                    fullWidth
+                                    label="Status"
+                                    select
+                                >
+                                    <MenuItem value="Pendente">Pendente</MenuItem>
+                                    <MenuItem value="Em análise">Em análise</MenuItem>
+                                    <MenuItem value="Concluído">Concluído</MenuItem>
+                                </TextField>
+                                <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
+                                    Salvar
+                                </Button>
+                                <Button onClick={() => setEditandoOcorrencia(null)} variant="outlined" color="secondary">
+                                    Cancelar
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <ListItemText
+                                    primary={ocorrencia.descricao}
+                                    secondary={<StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>}
+                                />
+                                <Button onClick={() => {
+                                    setDescricaoEditada(ocorrencia.descricao);
+                                    setStatusEditado(ocorrencia.status);
+                                    setEditandoOcorrencia(ocorrencia.id);
+                                }}>Editar</Button>
+                                <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
+                                    Remover
+                                </Button>
+                            </>
+                        )}
+                    </ListItem>
+                ))}
+            </List>
+            <TextField
+                value={novaOcorrencia}
+                onChange={(e) => setNovaOcorrencia(e.target.value)}
+                fullWidth
+                label="Descrição da nova ocorrência"
+            />
+            <Button onClick={handleAdicionarOcorrencia} variant="contained" color="primary">
+                Adicionar Ocorrência
+            </Button>
+            <Button onClick={handleSubmit} variant="contained" color="primary">
+                Enviar Ocorrências
+            </Button>
+            <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
+        </Container>
+    );
+};
+
+export default Ocorrencias;
