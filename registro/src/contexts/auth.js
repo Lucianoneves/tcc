@@ -2,14 +2,17 @@
 import React from 'react';
 import { useState, createContext, useEffect, useContext } from "react";
 import { auth, db } from "../services/firebaseConnection";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,onAuthStateChanged } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "firebase/auth";
 import { query, setDoc, doc, getDoc, where, getDocs, addDoc, collection } from "firebase/firestore";
+import { getStorage } from "firebase/storage";  // Certifique-se de importar o 'getStorage' aqui
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 
 
-export const AuthContext = createContext({});
+
+
+export const AuthContext = createContext({}); 
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -101,6 +104,24 @@ function AuthProvider({ children }) {
     }
   }
 
+
+  
+         // Redefinição de senha
+         async function redefinirSenha(email) {
+          try {
+            await sendPasswordResetEmail(auth, email);
+            toast.success("E-mail de redefinição enviado! Verifique sua caixa de entrada.");
+          } catch (error) {
+            // Imprimir o erro para mais detalhes
+            console.error("Erro ao enviar e-mail de redefinição:", error);
+            const erroMensagem = error.code ? error.code : error.message;
+            toast.error(`Erro: ${erroMensagem}`);
+          }
+        }
+        
+
+   
+
   // Registro de problemas
   const handleReg = async () => {
     if (!titulo.trim() || !descricao.trim()) {
@@ -187,6 +208,7 @@ function AuthProvider({ children }) {
         signed: !!user,
         user,
         login,
+        redefinirSenha,
         cadastrarUsuario,
         logout,
         loadingAuth,

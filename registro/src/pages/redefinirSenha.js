@@ -1,16 +1,44 @@
 import React, { useState } from 'react';
-import { TextField, Button, Container, Typography, Box, Alert } from '@mui/material';
+import { TextField, Button, Container, Typography, Box, Alert, CircularProgress } from '@mui/material';
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 
 function RedefinirSenha() {
     const [email, setEmail] = useState('');
     const [mensagem, setMensagem] = useState('');
+    const [erro, setErro] = useState('');
+    const [carregando, setCarregando] = useState(false);
+    const auth = getAuth();
 
-    const handleSubmit = (e) => {
+    const validarEmail = (email) => /\S+@\S+\.\S+/.test(email);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Aqui você pode fazer a chamada para o backend para enviar o link de redefinição de senha
-        alert(`Um link de redefinição de senha foi enviado para ${email}`);
-        setMensagem('Um link de redefinição de senha foi enviado para seu e-mail.');
-        setEmail(''); // Limpa o campo de email após o envio
+        setMensagem('');
+        setErro('');
+
+        if (!validarEmail(email)) {
+            setErro('Por favor, insira um e-mail válido.');
+            return;
+        }
+
+        setCarregando(true);
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            setMensagem('Se o e-mail informado estiver cadastrado, você receberá um link de redefinição.');
+            setEmail('');
+        } catch (error) {
+            console.error("Erro ao enviar e-mail de redefinição:", error);
+            if (error.code === 'auth/user-not-found') {
+                setErro('Usuário não encontrado.');
+            } else if (error.code === 'auth/invalid-email') {
+                setErro('E-mail inválido.');
+            } else {
+                setErro('Erro ao enviar o e-mail. Tente novamente.');
+            }
+        } finally {
+            setCarregando(false);
+        }
     };
 
     return (
@@ -41,14 +69,20 @@ function RedefinirSenha() {
                         color="primary"
                         type="submit"
                         fullWidth
+                        disabled={carregando}
                         sx={{ marginTop: '15px', padding: '10px 0' }}
                     >
-                        Enviar Link de Redefinição
+                        {carregando ? <CircularProgress size={24} /> : 'Enviar Link de Redefinição'}
                     </Button>
                 </form>
                 {mensagem && (
                     <Alert severity="success" sx={{ marginTop: '20px' }}>
                         {mensagem}
+                    </Alert>
+                )}
+                {erro && (
+                    <Alert severity="error" sx={{ marginTop: '20px' }}>
+                        {erro}
                     </Alert>
                 )}
             </Box>

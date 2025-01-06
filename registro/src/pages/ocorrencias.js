@@ -5,8 +5,10 @@ import {
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
-import {db } from "../services/firebaseConnection";
-import { addDoc, collection }from "firebase/firestore";
+import { db, storage } from "../services/firebaseConnection";  // Importando storage
+import {  doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot  } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject  } from "firebase/storage";
+import { getAuth } from "firebase/auth";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -33,6 +35,10 @@ const Ocorrencias = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
     const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null); // Estado para o arquivo selecionado
+    const auth = getAuth();
+    const user = auth.currentUser;  // Obtém o usuário logado
+   
 
     useEffect(() => {
         const usuarioAdmin = localStorage.getItem('isAdmin');
@@ -61,19 +67,42 @@ const Ocorrencias = () => {
         }
     }, [ocorrencias]);
 
-    const handleSalvarEdicao = (id) => {
+
+
+
+
+    const handleSalvarEdicao = async (id) => {
         if (descricaoEditada.trim() && statusEditado) {
-            setOcorrencias((prev) =>
-                prev.map((ocorrencia) =>
-                    ocorrencia.id === id
-                        ? { ...ocorrencia, descricao: descricaoEditada, status: statusEditado }
-                        : ocorrencia
-                )
-            );
-            setEditandoOcorrencia(null);
-            setSnackbarMessage('Ocorrência editada com sucesso!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
+            try {
+                // Referência para o documento a ser atualizado no Firestore
+                const docRef = doc(db, "ocorrencias", id); // Usando o id correto
+    
+                // Atualizando o documento no Firestore
+                await updateDoc(docRef, {
+                    descricao: descricaoEditada,
+                    status: statusEditado,
+                });
+    
+                // Atualizar o estado local após a edição
+                setOcorrencias((prev) =>
+                    prev.map((ocorrencia) =>
+                        ocorrencia.id === id
+                            ? { ...ocorrencia, descricao: descricaoEditada, status: statusEditado }
+                            : ocorrencia
+                    )
+                );
+    
+                // Fechar a edição e mostrar mensagem de sucesso
+                setEditandoOcorrencia(null);
+                setSnackbarMessage('Ocorrência editada com sucesso!');
+                setSnackbarSeverity('success');
+                setSnackbarOpen(true);
+            } catch (error) {
+                console.error("Erro ao editar ocorrência: ", error);
+                setSnackbarMessage('Erro ao editar a ocorrência.');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
+            }
         } else {
             setSnackbarMessage('Preencha todos os campos para salvar.');
             setSnackbarSeverity('error');
@@ -81,25 +110,42 @@ const Ocorrencias = () => {
         }
     };
 
-    const handleRemoverOcorrencia = (id) => {
-        setOcorrencias((prev) => prev.filter((ocorrencia) => ocorrencia.id !== id));
-        setSnackbarMessage('Ocorrência removida com sucesso!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-    };
+
 
     const handleAdicionarOcorrencia = async () => {
         if (novaOcorrencia.trim()) {
+            const usuarioId = user.uid; // Supondo que 'user' já seja o objeto do usuário autenticado
+            const nomeUsuario = user.nome; // Supondo que 'user' tenha o nome
+            const localizacao = 'Rua XYZ, Bairro ABC'; // Exemplo de localizacao, você pode obter isso de um input ou estado
+            const imagens = []; // Inicialmente vazio, você pode adicionar URLs das imagens carregadas aqui
+            
             const nova = {
                 descricao: novaOcorrencia,
-                status: 'Pendente',
+                status: '',
                 data: new Date(),
+                usuarioId,  // Adicionando o ID do usuário
+                nomeUsuario, // Adicionando o nome do usuário
+                localizacao, // Adicionando a localização
+                imagens,     // Adicionando imagens (a lista de URLs das imagens)
             };
+    
+            console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
     
             try {
                 // Adicionar no Firestore
                 const docRef = await addDoc(collection(db, "ocorrencias"), nova);
                 console.log("Ocorrência registrada com ID:", docRef.id);
+    
+                // Verificar se há um arquivo selecionado
+                if (selectedFile) {
+                    const fileRef = ref(storage, `ocorrencias/${docRef.id}/${selectedFile.name}`);
+                    await uploadBytes(fileRef, selectedFile);
+                    const fileURL = await getDownloadURL(fileRef);
+    
+                    // Atualizar a ocorrência com a URL do arquivo
+                    await updateDoc(docRef, { imagens: [...nova.imagens, fileURL] });
+                    console.log("Arquivo enviado e URL registrada no Firestore.");
+                }
     
                 // Adicionar no estado para atualizar a UI
                 setOcorrencias((prev) => [
@@ -107,6 +153,7 @@ const Ocorrencias = () => {
                     { id: docRef.id, ...nova },
                 ]);
                 setNovaOcorrencia('');  // Limpar o campo de entrada
+                setSelectedFile(null); // Limpar o arquivo selecionado
                 setSnackbarMessage('Ocorrência adicionada com sucesso!');
                 setSnackbarSeverity('success');
                 setSnackbarOpen(true);
@@ -123,6 +170,55 @@ const Ocorrencias = () => {
         }
     };
     
+
+
+   
+
+useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
+        const ocorrenciasAtualizadas = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            descricao: doc.data().descricao,
+            status: doc.data().status,
+            data: doc.data().data,
+            usuarioId: doc.data().usuarioId, // Incluindo usuarioId
+            nomeUsuario: doc.data().nomeUsuario, // Incluindo nomeUsuario
+            localizacao: doc.data().localizacao, // Incluindo localizacao
+            imagens: doc.data().imagens || [] // Incluindo imagens            
+        }));
+        setOcorrencias(ocorrenciasAtualizadas);
+    });
+
+    return () => unsubscribe(); // Desinscrever ao desmontar o componente
+}, []);
+
+    
+
+
+    const handleRemoverOcorrencia = async (id) => {
+        try {
+            // Remover no Firestore
+            const docRef = doc(db, "ocorrencias", id);
+            await deleteDoc(docRef);
+    
+            // Atualizar o estado local após a remoção
+            setOcorrencias((prev) => prev.filter((ocorrencia) => ocorrencia.id !== id));
+    
+            setSnackbarMessage('Ocorrência removida com sucesso!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+        } catch (error) {
+            console.error("Erro ao remover ocorrência: ", error);
+            setSnackbarMessage('Erro ao remover a ocorrência.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+        }
+    };
+    
+    
+
+    
+   
 
     const handleSubmit = () => {
         console.log('Ocorrências enviadas:', ocorrencias.filter((ocorrencia) =>
@@ -152,7 +248,70 @@ const Ocorrencias = () => {
     const handleSair = () => {
         localStorage.removeItem('isAdmin');
         navigate('/login'); // Redireciona para a página de login
+    };   
+
+
+
+
+
+     // Adicionar fotos e videos
+     const handleFileUpload = async (event, id) => {
+        const file = event.target.files[0]; // Pega o arquivo selecionado
+        if (!file) return;
+    
+        const fileRef = ref(storage, `ocorrencias/${id}/${file.name}`);
+        try {
+            // Fazer o upload do arquivo para o Firebase Storage
+            await uploadBytes(fileRef, file);
+            const fileURL = await getDownloadURL(fileRef);
+    
+            // Atualizar a ocorrência com o URL do arquivo carregado
+            setOcorrencias((prev) =>
+                prev.map((ocorrencia) =>
+                    ocorrencia.id === id
+                        ? { ...ocorrencia, media: [...(ocorrencia.media || []), fileURL] }
+                        : ocorrencia
+                )
+            );
+            setSnackbarMessage('Arquivo carregado com sucesso!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+        } catch (error) {
+            console.error("Erro ao carregar o arquivo: ", error);
+            setSnackbarMessage('Erro ao carregar o arquivo.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+        }
     };
+    
+    const handleRemoverArquivo = async (id, fileURL) => {
+        const fileRef = ref(storage, fileURL);
+        try {
+            // Remover o arquivo do Firebase Storage
+            await deleteObject(fileRef);
+            
+            // Atualizar a lista de ocorrências removendo o arquivo da URL
+            setOcorrencias((prev) =>
+                prev.map((ocorrencia) =>
+                    ocorrencia.id === id
+                        ? { ...ocorrencia, media: ocorrencia.media.filter((url) => url !== fileURL) }
+                        : ocorrencia
+                )
+            );
+            setSnackbarMessage('Arquivo removido com sucesso!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+        } catch (error) {
+            console.error("Erro ao remover o arquivo: ", error);
+            setSnackbarMessage('Erro ao remover o arquivo.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+        }
+    };
+    
+      
+
+    
 
     return (
         <Container>
@@ -215,11 +374,39 @@ const Ocorrencias = () => {
                     </ListItem>
                 ))}
             </List>
+
+
+            {ocorrencias.map((ocorrencia) => (
+    ocorrencia.media && ocorrencia.media.map((mediaURL, index) => (
+        <div key={index}>
+            {mediaURL.endsWith('.mp4') ? (
+                <video width="200" controls>
+                    <source src={mediaURL} type="video/mp4" />
+                    Seu navegador não suporta o elemento de vídeo.
+                </video>
+            ) : (
+                <img src={mediaURL} alt="Ocorrência" width="200" />
+            )}
+            <Button onClick={() => handleRemoverArquivo(ocorrencia.id, mediaURL)} color="error">
+                Remover Arquivo
+            </Button>
+        </div>
+    ))
+))}
+
+
+
+
+
             <TextField
                 value={novaOcorrencia}
                 onChange={(e) => setNovaOcorrencia(e.target.value)}
                 fullWidth
                 label="Descrição da nova ocorrência"
+            />
+            <input
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
             />
             <Button onClick={handleAdicionarOcorrencia} variant="contained" color="primary">
                 Adicionar Ocorrência
@@ -232,8 +419,9 @@ const Ocorrencias = () => {
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </Container>
+        </Container>    
+    
     );
-};
+}
 
 export default Ocorrencias;

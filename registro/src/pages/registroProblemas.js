@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, IconButton, Grid, Paper, Input } from '@mui/material';
+import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, IconButton, Grid, Paper, Input, Snackbar,  } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc,getDocs, onSnapshot, updateDoc  } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
+import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
+
 
 
 
 function RegistroProblemas() {  
 
-
+  const [ocorrencias, setOcorrencias] = useState([]);
+  const [novaOcorrencia, setNovaOcorrencia] = useState('');
   const [selecionadas, setSelecionadas] = useState([]);
   const [localizacao, setLocalizacao] = useState('');
   const [erroLocalizacao, setErroLocalizacao] = useState(null);
@@ -24,6 +27,12 @@ function RegistroProblemas() {
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const navigate = useNavigate(); // Hook para redirecionamento
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const storage = getStorage(); // Esta linha cria a referência para o Firebase Storage
+
 
  
 
@@ -45,14 +54,11 @@ function RegistroProblemas() {
     return () => {
       document.body.removeChild(script);
     };
-  }, [apiKey]);
-
-
+  }, [apiKey]); 
  
 
+  
 
-  const [ocorrencias, setOcorrencias] = useState([]);
-  const [novaOcorrencia, setNovaOcorrencia] = useState('');
 
 
 
@@ -62,91 +68,181 @@ function RegistroProblemas() {
     }
   }, [user, navigate]);
 
-
-
-
+   
+     // Carrega as ocorrências do localStorage quando o componente é montado
   useEffect(() => {
-    // Tentamos carregar as ocorrências do localStorage
-    const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
-    if (ocorrenciasSalvas) {
-      // Se encontrarmos as ocorrências salvas, convertemos para array e setamos no estado
-      setOcorrencias(JSON.parse(ocorrenciasSalvas));
-    } else {
-      // Caso não existam ocorrências no localStorage, usamos valores padrão
-      const ocorrenciasPadrao = [
-        { id: 1, descricao: 'Buraco na rua' },
-        { id: 2, descricao: 'Lâmpada queimada' },
-        { id: 3, descricao: 'Alagamento' },
-        { id: 4, descricao: 'Descarte irregular de lixo' },
-        { id: 5, descricao: 'Vazamento de água' },
-      ];
-      // Salvamos os valores padrão no localStorage
-      localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasPadrao));
-      setOcorrencias(ocorrenciasPadrao);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Salvar a lista de ocorrências no localStorage sempre que for alterada
-    if (ocorrencias.length > 0) {
+    if (ocorrencias) {
       localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
     }
   }, [ocorrencias]);
+                                                                       
+ 
+  
+  useEffect(() => {
+    const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
+    if (ocorrenciasSalvas) {
+      setOcorrencias(JSON.parse(ocorrenciasSalvas));
+    }
+  }, []);
 
-  const handleAddOcorrencia = () => {
-    if (novaOcorrencia.trim()) {
-      const nova = { id: Date.now(), descricao: novaOcorrencia }; // Use Date.now() para IDs únicos
-      setOcorrencias((prev) => [...prev, nova]);
-      setNovaOcorrencia('');
+
+
+  
+
+  useEffect(() => {
+    const fetchOcorrencias = async () => {
+        const ocorrenciasRef = collection(db, "ocorrencias");
+        const querySnapshot = await getDocs(ocorrenciasRef);
+        const ocorrenciasList = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        setOcorrencias(ocorrenciasList);
+    };
+
+    fetchOcorrencias();
+}, []);
+
+
+
+
+ 
+useEffect(() => {
+  const loadOcorrencias = async () => {
+    const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
+    if (ocorrenciasSalvas) {
+      setOcorrencias(JSON.parse(ocorrenciasSalvas)); // Carregar do localStorage
     } else {
-      alert('Por favor, descreva a nova ocorrência.');
+      try {
+        // Carregar do Firebase se não houver dados no localStorage
+        const querySnapshot = await getDocs(collection(db, 'problemas'));
+        const ocorrenciasFirebase = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setOcorrencias(ocorrenciasFirebase);
+      } catch (error) {
+        console.error('Erro ao buscar ocorrências do Firebase:', error);
+      }
     }
   };
-const handleSubmit = async () => {
-  if (!selecionadas.length) {
-    alert("Selecione pelo menos uma ocorrência.");
-    return;
+
+  loadOcorrencias();
+}, []); // Executa apenas na montagem do componente
+
+// Atualiza o localStorage sempre que as ocorrências mudarem
+useEffect(() => {
+  if (ocorrencias.length > 0) {
+    localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
   }
-  if (!user) {
-    alert("Usuário não identificado. Faça login novamente.");
-    return;
-  }
+}, [ocorrencias]);
 
-  console.log("Nome do usuário:", user.nome);
 
-  if (!user.nome) {
-    console.error("Nome do usuário não encontrado.");
-    return;
-  }
+  
+  
+const handleAdicionarOcorrencia = async () => {
+  if (novaOcorrencia.trim()) {
+      const nova = {
+          descricao: novaOcorrencia,
+          status: '',
+          data: new Date(),
+          media: [] // Aqui, será adicionada a URL do arquivo.
+      };
 
-  const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
+      console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
 
-  try {
-    // Cria um array de promessas para registrar as ocorrências no Firestore
-    const registros = ocorrenciasSelecionadas.map((o) =>
-      addDoc(collection(db, "problemas"), {
-        usuarioId: user.uid,
-        nomeUsuario: user.nome,
-        descricao: o.descricao,
-        localizacao: localizacao || "Não especificada",
-        data: new Date().toISOString(),
-        melhoria,
-        imagens: imagens,
-      })
-    );
-    // Aguarda todas as promessas serem resolvidas
-    await Promise.all(registros);
+      try {
+          // Adicionar no Firestore
+          const docRef = await addDoc(collection(db, "ocorrencias"), nova);
+          console.log("Ocorrência registrada com ID:", docRef.id);
+          
+          // Verificar se há um arquivo selecionado
+          if (selectedFile) {
+              const fileRef = ref(storage, `ocorrencias/${docRef.id}/${selectedFile.name}`);
+              await uploadBytes(fileRef, selectedFile);
+              const fileURL = await getDownloadURL(fileRef);
+          
+              // Atualizar a ocorrência com a URL do arquivo
+              await updateDoc(docRef, { media: [...nova.media, fileURL] });
+              console.log("Arquivo enviado e URL registrada no Firestore.");
+          }
 
-    alert("Ocorrências registradas com sucesso!");
-    setSelecionadas([]);  // Clear selected occurrences
-    setMelhoria("");  // Clear improvement field
-  } catch (error) {
-    console.error("Erro ao registrar ocorrências:", error);
-    alert("Erro ao registrar as ocorrências. Tente novamente.");
+          // Adicionar no estado para atualizar a UI
+          setOcorrencias((prev) => [
+              ...prev,
+              { id: docRef.id, ...nova },
+          ]);
+          setNovaOcorrencia('');  // Limpar o campo de entrada
+          setSelectedFile(null); // Limpar o arquivo selecionado
+          setSnackbarMessage('Ocorrência adicionada com sucesso!');
+          setSnackbarSeverity('success');
+          setSnackbarOpen(true);
+      } catch (error) {
+          console.error("Erro ao adicionar ocorrência: ", error);
+          setSnackbarMessage('Erro ao adicionar a ocorrência.');
+          setSnackbarSeverity('error');
+          setSnackbarOpen(true);
+      }
+  } else {
+      setSnackbarMessage('Por favor, descreva a nova ocorrência.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
   }
 };
+  
+
+  const handleSubmit = async () => {
+    if (!selecionadas.length) {
+      alert("Selecione pelo menos uma ocorrência.");
+      return;
+    }
+    if (!user) {
+      alert("Usuário não identificado. Faça login novamente.");
+      return;
+    }
+  
+    const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
+  
+    try {
+      const registros = ocorrenciasSelecionadas.map((o) =>
+        addDoc(collection(db, "problemas"), {
+          usuarioId: user.uid,
+          nomeUsuario: user.nome,
+          descricao: o.descricao,
+          localizacao: localizacao || "Não especificada",
+          data: new Date().toISOString(),
+          melhoria,
+          imagens: imagens,
+          status: "Pendente",
+        })
+      );
+      await Promise.all(registros);
+  
+      alert("Ocorrências registradas com sucesso!");
+  
+      // Atualize o estado local e o localStorage
+      const ocorrenciasAtualizadas = ocorrencias.filter((o) => !selecionadas.includes(o.id));
+      setOcorrencias(ocorrenciasAtualizadas);
+      localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasAtualizadas));
+  
+      setSelecionadas([]);
+      setMelhoria("");
+    } catch (error) {
+      console.error("Erro ao registrar ocorrências:", error);
+      alert("Erro ao registrar as ocorrências. Tente novamente.");
+    }
+  };
+  
 
 
+  const handleCheckboxChange = (id) => {
+    setSelecionadas((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+  
+
+       
 
 
 
@@ -206,7 +302,7 @@ const handleSubmit = async () => {
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
 
-  const handleSubmitNovaOcorrencia  = async () => {
+  const handleSubmitNovaOcorrencia = async () => {
     if (!selecionadas.length) {
       alert("Selecione pelo menos uma ocorrência.");
       return;
@@ -217,7 +313,6 @@ const handleSubmit = async () => {
       return;
     }
   
-    // Check the user object
     console.log(user);
   
     if (!user.nome) {
@@ -232,12 +327,13 @@ const handleSubmit = async () => {
       const registros = ocorrenciasSelecionadas.map((o) =>
         addDoc(collection(db, "problemas"), {
           usuarioId: user.uid,
-          nomeUsuario: user.nome, // Pega o nome do usuário do contexto
+          nomeUsuario: user.nome,
           descricao: o.descricao,
           localizacao: localizacao || "Não especificada",
           data: new Date().toISOString(),
           melhoria,
           imagens: imagens,
+          status: "Pendente",  // Adicionando o status com valor inicial
         })
       );
   
@@ -245,8 +341,8 @@ const handleSubmit = async () => {
       await Promise.all(registros);
   
       alert("Ocorrências registradas com sucesso!");
-      setSelecionadas([]);  // Limpar as ocorrências selecionadas
-      setMelhoria("");  // Limpar o campo de melhoria
+      setSelecionadas([]); // Limpar as ocorrências selecionadas
+      setMelhoria(""); // Limpar o campo de melhoria
     } catch (error) {
       console.error("Erro ao registrar ocorrências:", error);
       alert("Erro ao registrar as ocorrências. Tente novamente.");
@@ -254,15 +350,7 @@ const handleSubmit = async () => {
   };
   
   
-
-
-
-  
  
-  
-  const handleCheckboxChange = (id) => {
-    setSelecionadas((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-  };
 
 
   const handleAddImages = (event) => {
@@ -278,16 +366,6 @@ const handleSubmit = async () => {
   
   
 
-  if (!user) {
-    return (
-      <Container maxWidth="sm">
-        <Typography variant="h6" color="error" gutterBottom>
-          Usuário não autenticado.
-        </Typography>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="sm">
       <Box sx={{ mb: 3 }}>
@@ -299,8 +377,6 @@ const handleSubmit = async () => {
         <Typography variant="h5" gutterBottom>
           Registrar Ocorrências da sua Região
         </Typography>
-
-        {/* Exibindo o nome do usuário */}
         <Typography variant="subtitle1" gutterBottom>
           Bem-vindo, {user.nome}!
         </Typography>
@@ -309,18 +385,24 @@ const handleSubmit = async () => {
           {ocorrencias.map((o) => (
             <ListItem key={o.id}>
               <FormControlLabel
-                control={<Checkbox checked={selecionadas.includes(o.id)} onChange={() => handleCheckboxChange(o.id)} />}
-                label={o.descricao}
+                control={
+                  <Checkbox
+                    checked={selecionadas.includes(o.id)}
+                    onChange={() => handleCheckboxChange(o.id)}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography>{o.descricao}</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Status: {o.status || 'Pendente'}
+                    </Typography>
+                  </Box>
+                }
               />
             </ListItem>
           ))}
         </List>
-
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          <Button variant="contained" color="primary" onClick={handleSubmitNovaOcorrencia } fullWidth>
-            Registrar Ocorrências
-          </Button>
-        </Box>
       </Paper>
 
       <Box mt={4}>
@@ -334,29 +416,11 @@ const handleSubmit = async () => {
           margin="normal"
         />
         <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={() =>  {
-                if (novaOcorrencia.trim()) {
-              // Adicionando a nova ocorrência ao estado
-              setOcorrencias([
-                ...ocorrencias, 
-                { id: ocorrencias.length + 1, descricao: novaOcorrencia }
-              ]);
-              // Limpando o campo de texto
-              setNovaOcorrencia('');
-            } else {
-              alert('Por favor, descreva a nova ocorrência.');
-            }
-          }}
-        
-          >
-            Adicionar
+          <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
+            Adicionar Ocorrência
           </Button>
         </Box>
       </Box>
-      
 
       <Box mt={4}>
         <Typography variant="h6">Localização Atual</Typography>
@@ -372,18 +436,10 @@ const handleSubmit = async () => {
           <Button variant="outlined" color="primary" onClick={obterLocalizacao}>
             Obter Localização Atual
           </Button>
-          <Button variant="outlined" color="secondary" onClick={buscarEnderecoManual}>
-            Buscar Manualmente
-          </Button>
         </Box>
         {erroLocalizacao && (
           <Typography color="error" variant="body2" sx={{ mt: 2 }}>
             {erroLocalizacao}
-          </Typography>
-        )}
-        {resultadoEndereco && (
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            {resultadoEndereco}
           </Typography>
         )}
       </Box>
@@ -392,7 +448,7 @@ const handleSubmit = async () => {
         <Typography variant="h6">Adicionar Imagens</Typography>
         <Input
           type="file"
-          inputProps={{ accept: "image/*", multiple: true }}
+          inputProps={{ accept: 'image/*', multiple: true }}
           onChange={handleAddImages}
           fullWidth
         />
@@ -402,7 +458,7 @@ const handleSubmit = async () => {
               {imagens.map((imagem, index) => (
                 <Grid item xs={4} key={index}>
                   <Paper sx={{ padding: 1 }}>
-                    <img src={imagem} alt={`Imagem ${index}`} style={{ width: '100%', height: 'auto' }} />
+                    <img src={imagem} alt={`Imagem ${index}`} style={{ width: '100%' }} />
                     <Button
                       variant="outlined"
                       color="secondary"
@@ -410,9 +466,6 @@ const handleSubmit = async () => {
                       sx={{ mt: 1 }}
                       fullWidth
                     >
-
-
-                    
                       Remover
                     </Button>
                   </Paper>
@@ -423,7 +476,8 @@ const handleSubmit = async () => {
         </Box>
       </Box>
     </Container>
-  );
-};
+  )
+}
+
 
 export default RegistroProblemas;

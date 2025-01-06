@@ -108,16 +108,7 @@ function PerfilUsuario() {
   };  
 
 
-  const fetchOcorrencias = async () => {
-    const querySnapshot = await getDocs(collection(db, "ocorrencias"));
-    const ocorrenciasData = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setOcorrencias(ocorrenciasData);
-  };
 
-  fetchOcorrencias();
 
 
 
