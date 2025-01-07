@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 
 
 
-export const AuthContext = createContext({}); 
+export const AuthContext = createContext({});
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -105,22 +105,22 @@ function AuthProvider({ children }) {
   }
 
 
-  
-         // Redefinição de senha
-         async function redefinirSenha(email) {
-          try {
-            await sendPasswordResetEmail(auth, email);
-            toast.success("E-mail de redefinição enviado! Verifique sua caixa de entrada.");
-          } catch (error) {
-            // Imprimir o erro para mais detalhes
-            console.error("Erro ao enviar e-mail de redefinição:", error);
-            const erroMensagem = error.code ? error.code : error.message;
-            toast.error(`Erro: ${erroMensagem}`);
-          }
-        }
-        
 
-   
+  // Redefinição de senha
+  async function redefinirSenha(email) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success("E-mail de redefinição enviado! Verifique sua caixa de entrada.");
+    } catch (error) {
+      // Imprimir o erro para mais detalhes
+      console.error("Erro ao enviar e-mail de redefinição:", error);
+      const erroMensagem = error.code ? error.code : error.message;
+      toast.error(`Erro: ${erroMensagem}`);
+    }
+  }
+
+
+
 
   // Registro de problemas
   const handleReg = async () => {
@@ -203,8 +203,8 @@ function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ 
-       
+      value={{
+
         signed: !!user,
         user,
         login,

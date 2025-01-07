@@ -6,8 +6,8 @@ import {
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
 import { db, storage } from "../services/firebaseConnection";  // Importando storage
-import {  doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot  } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject  } from "firebase/storage";
+import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
@@ -38,7 +38,10 @@ const Ocorrencias = () => {
     const [selectedFile, setSelectedFile] = useState(null); // Estado para o arquivo selecionado
     const auth = getAuth();
     const user = auth.currentUser;  // Obtém o usuário logado
-   
+    const [observacoes, setObservacoes] = useState('');
+    const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
+
+
 
     useEffect(() => {
         const usuarioAdmin = localStorage.getItem('isAdmin');
@@ -76,13 +79,13 @@ const Ocorrencias = () => {
             try {
                 // Referência para o documento a ser atualizado no Firestore
                 const docRef = doc(db, "ocorrencias", id); // Usando o id correto
-    
+
                 // Atualizando o documento no Firestore
                 await updateDoc(docRef, {
                     descricao: descricaoEditada,
                     status: statusEditado,
                 });
-    
+
                 // Atualizar o estado local após a edição
                 setOcorrencias((prev) =>
                     prev.map((ocorrencia) =>
@@ -91,7 +94,7 @@ const Ocorrencias = () => {
                             : ocorrencia
                     )
                 );
-    
+
                 // Fechar a edição e mostrar mensagem de sucesso
                 setEditandoOcorrencia(null);
                 setSnackbarMessage('Ocorrência editada com sucesso!');
@@ -118,7 +121,7 @@ const Ocorrencias = () => {
             const nomeUsuario = user.nome; // Supondo que 'user' tenha o nome
             const localizacao = 'Rua XYZ, Bairro ABC'; // Exemplo de localizacao, você pode obter isso de um input ou estado
             const imagens = []; // Inicialmente vazio, você pode adicionar URLs das imagens carregadas aqui
-            
+
             const nova = {
                 descricao: novaOcorrencia,
                 status: '',
@@ -127,26 +130,27 @@ const Ocorrencias = () => {
                 nomeUsuario, // Adicionando o nome do usuário
                 localizacao, // Adicionando a localização
                 imagens,     // Adicionando imagens (a lista de URLs das imagens)
+                observacoes
             };
-    
+
             console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
-    
+
             try {
                 // Adicionar no Firestore
                 const docRef = await addDoc(collection(db, "ocorrencias"), nova);
                 console.log("Ocorrência registrada com ID:", docRef.id);
-    
+
                 // Verificar se há um arquivo selecionado
                 if (selectedFile) {
                     const fileRef = ref(storage, `ocorrencias/${docRef.id}/${selectedFile.name}`);
                     await uploadBytes(fileRef, selectedFile);
                     const fileURL = await getDownloadURL(fileRef);
-    
+
                     // Atualizar a ocorrência com a URL do arquivo
                     await updateDoc(docRef, { imagens: [...nova.imagens, fileURL] });
                     console.log("Arquivo enviado e URL registrada no Firestore.");
                 }
-    
+
                 // Adicionar no estado para atualizar a UI
                 setOcorrencias((prev) => [
                     ...prev,
@@ -169,30 +173,31 @@ const Ocorrencias = () => {
             setSnackbarOpen(true);
         }
     };
-    
 
 
-   
 
-useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
-        const ocorrenciasAtualizadas = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            descricao: doc.data().descricao,
-            status: doc.data().status,
-            data: doc.data().data,
-            usuarioId: doc.data().usuarioId, // Incluindo usuarioId
-            nomeUsuario: doc.data().nomeUsuario, // Incluindo nomeUsuario
-            localizacao: doc.data().localizacao, // Incluindo localizacao
-            imagens: doc.data().imagens || [] // Incluindo imagens            
-        }));
-        setOcorrencias(ocorrenciasAtualizadas);
-    });
 
-    return () => unsubscribe(); // Desinscrever ao desmontar o componente
-}, []);
 
-    
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
+            const ocorrenciasAtualizadas = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                descricao: doc.data().descricao,
+                status: doc.data().status,
+                observacoes: doc.data().observacoes,
+                data: doc.data().data,
+                usuarioId: doc.data().usuarioId, // Incluindo usuarioId
+                nomeUsuario: doc.data().nomeUsuario, // Incluindo nomeUsuario
+                localizacao: doc.data().localizacao, // Incluindo localizacao
+                imagens: doc.data().imagens || [] // Incluindo imagens            
+            }));
+            setOcorrencias(ocorrenciasAtualizadas);
+        });
+
+        return () => unsubscribe(); // Desinscrever ao desmontar o componente
+    }, []);
+
+
 
 
     const handleRemoverOcorrencia = async (id) => {
@@ -200,10 +205,10 @@ useEffect(() => {
             // Remover no Firestore
             const docRef = doc(db, "ocorrencias", id);
             await deleteDoc(docRef);
-    
+
             // Atualizar o estado local após a remoção
             setOcorrencias((prev) => prev.filter((ocorrencia) => ocorrencia.id !== id));
-    
+
             setSnackbarMessage('Ocorrência removida com sucesso!');
             setSnackbarSeverity('success');
             setSnackbarOpen(true);
@@ -214,11 +219,11 @@ useEffect(() => {
             setSnackbarOpen(true);
         }
     };
-    
-    
 
-    
-   
+
+
+
+
 
     const handleSubmit = () => {
         console.log('Ocorrências enviadas:', ocorrencias.filter((ocorrencia) =>
@@ -248,23 +253,23 @@ useEffect(() => {
     const handleSair = () => {
         localStorage.removeItem('isAdmin');
         navigate('/login'); // Redireciona para a página de login
-    };   
+    };
 
 
 
 
 
-     // Adicionar fotos e videos
-     const handleFileUpload = async (event, id) => {
+    // Adicionar fotos e videos
+    const handleFileUpload = async (event, id) => {
         const file = event.target.files[0]; // Pega o arquivo selecionado
         if (!file) return;
-    
+
         const fileRef = ref(storage, `ocorrencias/${id}/${file.name}`);
         try {
             // Fazer o upload do arquivo para o Firebase Storage
             await uploadBytes(fileRef, file);
             const fileURL = await getDownloadURL(fileRef);
-    
+
             // Atualizar a ocorrência com o URL do arquivo carregado
             setOcorrencias((prev) =>
                 prev.map((ocorrencia) =>
@@ -283,13 +288,13 @@ useEffect(() => {
             setSnackbarOpen(true);
         }
     };
-    
+
     const handleRemoverArquivo = async (id, fileURL) => {
         const fileRef = ref(storage, fileURL);
         try {
             // Remover o arquivo do Firebase Storage
             await deleteObject(fileRef);
-            
+
             // Atualizar a lista de ocorrências removendo o arquivo da URL
             setOcorrencias((prev) =>
                 prev.map((ocorrencia) =>
@@ -308,10 +313,10 @@ useEffect(() => {
             setSnackbarOpen(true);
         }
     };
-    
-      
 
-    
+
+
+
 
     return (
         <Container>
@@ -323,76 +328,81 @@ useEffect(() => {
                 Sair
             </Button>
             <List>
-                {ocorrencias.map((ocorrencia) => (
-                    <ListItem key={ocorrencia.id}>
-                        <Checkbox
-                            checked={selecionadas.includes(ocorrencia.id)}
-                            onChange={() => handleCheckboxChange(ocorrencia.id)}
-                        />
-                        {editandoOcorrencia === ocorrencia.id ? (
-                            <>
-                                <TextField
-                                    value={descricaoEditada}
-                                    onChange={(e) => setDescricaoEditada(e.target.value)}
-                                    fullWidth
-                                    label="Descrição"
-                                />
-                                <TextField
-                                    value={statusEditado}
-                                    onChange={(e) => setStatusEditado(e.target.value)}
-                                    fullWidth
-                                    label="Status"
-                                    select
-                                >
-                                    <MenuItem value="Pendente">Pendente</MenuItem>
-                                    <MenuItem value="Em análise">Em análise</MenuItem>
-                                    <MenuItem value="Concluído">Concluído</MenuItem>
-                                </TextField>
-                                <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
-                                    Salvar
-                                </Button>
-                                <Button onClick={() => setEditandoOcorrencia(null)} variant="outlined" color="secondary">
-                                    Cancelar
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <ListItemText
-                                    primary={ocorrencia.descricao}
-                                    secondary={<StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>}
-                                />
-                                <Button onClick={() => {
-                                    setDescricaoEditada(ocorrencia.descricao);
-                                    setStatusEditado(ocorrencia.status);
-                                    setEditandoOcorrencia(ocorrencia.id);
-                                }}>Editar</Button>
-                                <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
-                                    Remover
-                                </Button>
-                            </>
-                        )}
-                    </ListItem>
-                ))}
-            </List>
+    {ocorrencias.map((ocorrencia) => (
+        <ListItem key={ocorrencia.id}>
+            <Checkbox
+                checked={selecionadas.includes(ocorrencia.id)}
+                onChange={() => handleCheckboxChange(ocorrencia.id)}
+            />
+            {editandoOcorrencia === ocorrencia.id ? (
+                <>
+                    <TextField
+                        value={descricaoEditada}
+                        onChange={(e) => setDescricaoEditada(e.target.value)}
+                        fullWidth
+                        label="Descrição"
+                    />
+                    <TextField
+                        value={statusEditado}
+                        onChange={(e) => setStatusEditado(e.target.value)}
+                        fullWidth
+                        label="Status"
+                        select
+                    >
+                        <MenuItem value="Pendente">Pendente</MenuItem>
+                        <MenuItem value="Em análise">Em análise</MenuItem>
+                        <MenuItem value="Concluído">Concluído</MenuItem>
+                    </TextField>
+                    <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
+                        Salvar
+                    </Button>
+                    <Button onClick={() => setEditandoOcorrencia(null)} variant="outlined" color="secondary">
+                        Cancelar
+                    </Button>
+                </>
+            ) : (
+                <>
+                    <ListItemText
+                        primary={ocorrencia.descricao}
+                        secondary={
+                            <Typography component="div">
+                                <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
+                            </Typography>
+                        }
+                    />
+                    <Button onClick={() => {
+                        setDescricaoEditada(ocorrencia.descricao);
+                        setStatusEditado(ocorrencia.status);
+                        setEditandoOcorrencia(ocorrencia.id);
+                    }}>Editar</Button>
+                    <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
+                        Remover
+                    </Button>
+                </>
+            )}
+        </ListItem>
+    ))}
+</List>
+
 
 
             {ocorrencias.map((ocorrencia) => (
-    ocorrencia.media && ocorrencia.media.map((mediaURL, index) => (
-        <div key={index}>
-            {mediaURL.endsWith('.mp4') ? (
-                <video width="200" controls>
-                    <source src={mediaURL} type="video/mp4" />
-                    Seu navegador não suporta o elemento de vídeo.
-                </video>
-            ) : (
-                <img src={mediaURL} alt="Ocorrência" width="200" />
-            )}
-            <Button onClick={() => handleRemoverArquivo(ocorrencia.id, mediaURL)} color="error">
-                Remover Arquivo
-            </Button>
-        </div>
-    ))
-))}
+                ocorrencia.media && ocorrencia.media.map((mediaURL, index) => (
+                    <div key={index}>
+                        {mediaURL.endsWith('.mp4') ? (
+                            <video width="200" controls>
+                                <source src={mediaURL} type="video/mp4" />
+                                Seu navegador não suporta o elemento de vídeo.
+                            </video>
+                        ) : (
+                            <img src={mediaURL} alt="Ocorrência" width="200" />
+                        )}
+                        <Button onClick={() => handleRemoverArquivo(ocorrencia.id, mediaURL)} color="error">
+                            Remover Arquivo
+                        </Button>
+                    </div>
+                ))
+            ))}
 
 
 
@@ -419,8 +429,8 @@ useEffect(() => {
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </Container>    
-    
+        </Container>
+
     );
 }
 

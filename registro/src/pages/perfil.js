@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { Button, TextField, Container, Box, List, ListItem, Typography, Avatar } from "@mui/material";
 import { AuthContext } from "../contexts/auth";
 import { db, storage } from "../services/firebaseConnection";
-import { doc, getDoc,getDocs, updateDoc, setDoc, collection } from "firebase/firestore";
+import { doc, getDoc, getDocs, updateDoc, setDoc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom"; // Importa o hook para navegação
 import { updateProfile } from "firebase/auth";
@@ -105,7 +105,7 @@ function PerfilUsuario() {
 
   const handleIrParaRegistroProblemas = () => {
     navigate("/registroProblemas");
-  };  
+  };
 
 
 
@@ -186,14 +186,14 @@ function PerfilUsuario() {
       </Box>
 
       <List>
-      {ocorrencias.map((o) => (
-    <ListItem key={o.id}>
-      <Typography>
-        Ocorrência: {o.descricao} - Registrada por: {o.usuarioNome} (ID: {o.usuarioId})
-      </Typography>
-    </ListItem>
-  ))}
-</List>
+        {ocorrencias.map((o) => (
+          <ListItem key={o.id}>
+            <Typography>
+              Ocorrência: {o.descricao} - Registrada por: {o.usuarioNome} (ID: {o.usuarioId})
+            </Typography>
+          </ListItem>
+        ))}
+      </List>
 
 
 
