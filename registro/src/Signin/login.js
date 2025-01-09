@@ -4,9 +4,9 @@ import "../styles/login.css";
 import { AuthContext } from "../contexts/auth";
 import { Box, Button, Grid, TextField, Typography } from "@mui/material";
 import { toast } from "react-toastify";
-import {db } from "../services/firebaseConnection";
-import {addDoc, collection }from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { db } from "../services/firebaseConnection";
+import { addDoc, collection, query, where, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { getAuth, deleteUser, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -14,7 +14,7 @@ function Login() {
   const navigate = useNavigate();
 
   // Obtendo a função de login e o estado de carregamento do contexto
-  const { login, loadingAuth, user } = useContext(AuthContext); 
+  const { login, loadingAuth, user } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +26,7 @@ function Login() {
 
     try {
       await login(email, senha); // Chama a função de login do contexto
-      await addDoc(collection(db, "login"),{
+      await addDoc(collection(db, "login"), {
         email: email,
         senha: senha
       })
@@ -45,11 +45,46 @@ function Login() {
     navigate("/cadastrarUsuario");
   };
 
+  // Função para remover os dados do Firestore ao excluir o usuário
+  const removerDadosLogin = async (email) => {
+    try {
+      // Cria uma referência para a coleção "login"
+      const q = query(collection(db, "login"), where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      // Itera sobre os documentos encontrados com o e-mail correspondente
+      querySnapshot.forEach(async (documento) => {
+        await deleteDoc(doc(db, "login", documento.id)); // Exclui o documento
+      });
+
+      console.log("Dados de login excluídos com sucesso!");
+    } catch (error) {
+      console.error("Erro ao excluir os dados de login: ", error);
+    }
+  };
+
+  const excluirUsuario = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      try {
+        // Exclui os dados de login antes de excluir a conta
+        await removerDadosLogin(user.email);
+
+        // Exclui o usuário autenticado
+        await deleteUser(user);
+        console.log("Usuário excluído com sucesso!");
+      } catch (error) {
+        console.error("Erro ao excluir o usuário: ", error);
+      }
+    }
+  };
+
+
   return (
 
-    
-
-<Box
+    <Box
       component="form"
       onSubmit={handleSubmit}
       autoComplete="off" // Desabilita o preenchimento automático no formulário

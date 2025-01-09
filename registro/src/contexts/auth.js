@@ -3,7 +3,7 @@ import React from 'react';
 import { useState, createContext, useEffect, useContext } from "react";
 import { auth, db } from "../services/firebaseConnection";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "firebase/auth";
-import { query, setDoc, doc, getDoc, where, getDocs, addDoc, collection } from "firebase/firestore";
+import { query, setDoc, doc, getDoc, where, getDocs, addDoc, collection, deleteDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";  // Certifique-se de importar o 'getStorage' aqui
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -201,6 +201,38 @@ function AuthProvider({ children }) {
     toast.success("Você foi desconectado.");
   }
 
+  // Função para excluir o perfil do usuário
+async function excluirPerfil() {
+  if (!user?.uid) {
+    toast.error("Usuário não autenticado.");
+    return;
+  }
+
+  try {
+    // Remover dados do usuário no Firestore
+    const docRef = doc(db, "users", user.uid);
+    await deleteDoc(docRef);
+
+    // Excluir o usuário no Firebase Authentication
+    await user.delete();
+
+    // Remover usuário do localStorage
+    localStorage.removeItem("@tickesPRO");
+    setUser(null);
+
+    toast.success("Perfil excluído com sucesso.");
+    navigate("/"); // Redirecionar para a página inicial (ou para onde preferir)
+  } catch (error) {
+    console.error("Erro ao excluir perfil:", error);
+    toast.error("Erro ao excluir perfil. Tente novamente.");
+  }
+}
+
+
+
+
+
+
   return (
     <AuthContext.Provider
       value={{
@@ -211,6 +243,7 @@ function AuthProvider({ children }) {
         redefinirSenha,
         cadastrarUsuario,
         logout,
+        excluirPerfil,  // função excluirPerfil
         loadingAuth,
         loading,
         handleReg, // Exponha handleReg para uso

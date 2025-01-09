@@ -1,11 +1,14 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, TextField, Container, Box, List, ListItem, Typography, Avatar } from "@mui/material";
 import { AuthContext } from "../contexts/auth";
-import { db, storage } from "../services/firebaseConnection";
-import { doc, getDoc, getDocs, updateDoc, setDoc, collection } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage,auth } from "../services/firebaseConnection";
+import { doc, getDoc, getDocs, updateDoc, setDoc, collection, deleteDoc  } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject  } from "firebase/storage";
 import { useNavigate } from "react-router-dom"; // Importa o hook para navegação
 import { updateProfile } from "firebase/auth";
+import { toast } from "react-toastify";
+
+
 
 function PerfilUsuario() {
   const { user, logout } = useContext(AuthContext);
@@ -108,7 +111,37 @@ function PerfilUsuario() {
   };
 
 
-
+  async function excluirPerfil(user, logout, navigate) {
+    if (!user || !user.uid) {
+      toast.error("Usuário não autenticado.");
+      return;
+    }
+  
+    try {
+      setLoading(true);
+  
+      // Exclui o documento da coleção 'users'
+      const docRefUsers = doc(db, "users", user.uid);
+      await deleteDoc(docRefUsers);
+  
+      // Exclui o documento da coleção 'login'
+      const docRefLogin = doc(db, "login", user.uid);
+      await deleteDoc(docRefLogin);
+  
+      // Remove a conta do Firebase Authentication
+      await auth.currentUser.delete();
+  
+      // Limpa o estado do usuário e redireciona
+      await logout();
+      toast.success("Perfil excluído com sucesso.");
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao excluir perfil:", error);
+      toast.error("Erro ao excluir perfil. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  } 
 
 
 
@@ -182,6 +215,16 @@ function PerfilUsuario() {
           >
             Registro de Problemas
           </Button>
+
+          <Button
+           variant="outlined"
+           color="error"
+           onClick={() => excluirPerfil(user, logout, navigate)}
+           disabled={loading}         >
+           {loading ? "Excluindo..." : "Excluir Perfil"}
+         </Button>
+          
+
         </Box>
       </Box>
 
