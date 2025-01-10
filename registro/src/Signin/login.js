@@ -19,8 +19,12 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || !senha) {
-      toast.error("Preencha todos os campos.");
+    if (!email || email.length <5 || email.length >25) {
+      toast.error("O e-mail deve ter entre 5 e 25 caracteres.");
+      return;
+    }
+    if (!senha || senha.length < 6 || senha.length > 12) {
+      toast.error("A senha deve ter entre 6 e 20 caracteres.");
       return;
     }
 
@@ -116,6 +120,8 @@ function Login() {
             type="email"
             required
             autoComplete="email" // Sugestão específica para o navegador ignorar histórico
+             inputProps={{ minLength: 5, maxLength: 50 }} // Limites de caracteres
+            helperText="O e-mail deve ter entre 5 e 25 caracteres."
           />
         </Grid>
 
@@ -129,6 +135,8 @@ function Login() {
             type="password"
             required
             autoComplete="new-password" // Evita preenchimento automático
+            inputProps={{ minLength: 6, maxLength: 20 }} // Limites de caracteres
+            helperText="A senha deve ter entre 6 e 12caracteres."
           />
         </Grid>
 

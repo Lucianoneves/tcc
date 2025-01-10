@@ -100,7 +100,6 @@ useEffect(() => {
 
 
 
-
   useEffect(() => {
     const fetchOcorrencias = async () => {
       const ocorrenciasRef = collection(db, "ocorrencias");
@@ -111,9 +110,10 @@ useEffect(() => {
       }));
       setOcorrencias(ocorrenciasList);
     };
-
+  
     fetchOcorrencias();
   }, []);
+  
 
 
 
@@ -151,7 +151,6 @@ useEffect(() => {
 
 
 
-
   const handleAdicionarOcorrencia = async () => {
     if (novaOcorrencia.trim()) {
       const nova = {
@@ -162,25 +161,25 @@ useEffect(() => {
         data: new Date(),
         media: [], // Aqui, será adicionada a URL do arquivo.
       };
-
+  
       console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
-
+  
       try {
         // Adicionar no Firestore
         const docRef = await addDoc(collection(db, "ocorrencias"), nova);
         console.log("Ocorrência registrada com ID:", docRef.id);
-
+  
         // Verificar se há um arquivo selecionado
         if (selectedFile) {
           const fileRef = ref(storage, `ocorrencias/${docRef.id}/${selectedFile.name}`);
           await uploadBytes(fileRef, selectedFile);
           const fileURL = await getDownloadURL(fileRef);
-
+  
           // Atualizar a ocorrência com a URL do arquivo
-          await updateDoc(docRef, { media: [...nova.media, fileURL] });
+          await updateDoc(docRef, { media: [fileURL] });
           console.log("Arquivo enviado e URL registrada no Firestore.");
         }
-
+  
         // Adicionar no estado para atualizar a UI
         setOcorrencias((prev) => [...prev, { id: docRef.id, ...nova }]);
         setNovaOcorrencia(''); // Limpar o campo de entrada
@@ -201,7 +200,7 @@ useEffect(() => {
       setSnackbarOpen(true);
     }
   };
-
+  
 
 
   const handleSubmit = async () => {
@@ -363,6 +362,10 @@ useEffect(() => {
 
 
 
+  const handleRemoveImage = (index) => {
+    setImagens(imagens.filter((_, i) => i !== index));
+  };
+
   const handleAddImages = (event) => {
     const files = event.target.files;
     if (files) {
@@ -370,12 +373,7 @@ useEffect(() => {
       setImagens(prevImagens => [...prevImagens, ...newImagens]);
     }
   };
-  const handleRemoveImage = (index) => {
-    setImagens(imagens.filter((_, i) => i !== index));
-  };
-
-
-
+  
   return (
     <Container maxWidth="sm">
       <Box sx={{ mb: 3 }}>

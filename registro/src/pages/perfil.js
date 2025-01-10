@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, TextField, Container, Box, List, ListItem, Typography, Avatar } from "@mui/material";
 import { AuthContext } from "../contexts/auth";
-import { db, storage,auth } from "../services/firebaseConnection";
-import { doc, getDoc, getDocs, updateDoc, setDoc, collection, deleteDoc  } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, deleteObject  } from "firebase/storage";
+import { db, storage, auth } from "../services/firebaseConnection";
+import { doc, getDoc, getDocs, updateDoc, setDoc, collection, deleteDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useNavigate } from "react-router-dom"; // Importa o hook para navegação
 import { updateProfile } from "firebase/auth";
 import { toast } from "react-toastify";
@@ -89,22 +89,37 @@ function PerfilUsuario() {
 
   const handleFotoChange = async (event) => {
     const file = event.target.files[0];
-    if (!file) return;
-
-    const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+    if (!file) {
+      alert("Nenhum arquivo selecionado.");
+      return;
+    }
+  
+    const storageRef = ref(storage, `avatars/${user.uid}/${Date.now()}_${file.name}`);
     try {
+      // Envia o arquivo para o Firebase Storage
       await uploadBytes(storageRef, file);
+  
+      // Obtém a URL de download
       const downloadURL = await getDownloadURL(storageRef);
+      console.log("Nova URL da imagem:", downloadURL);  // Verifique se a URL está correta.
+  
+      // Atualiza o estado da imagem
       setImageAvatar(downloadURL);
-
+  
+      // Atualiza o Firestore com a URL da imagem
       const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, { photoURL: downloadURL });
+      await updateDoc(userDocRef, { avatarUrl: downloadURL });
+  
+      // Atualiza a foto do perfil no Firebase Authentication
+      await updateProfile(auth.currentUser, { photoURL: downloadURL });
+  
       alert("Foto de perfil atualizada com sucesso!");
     } catch (error) {
       console.error("Erro ao alterar a foto de perfil:", error);
       alert("Erro ao alterar a foto de perfil. Tente novamente.");
     }
   };
+  
 
   const handleIrParaRegistroProblemas = () => {
     navigate("/registroProblemas");
@@ -116,21 +131,21 @@ function PerfilUsuario() {
       toast.error("Usuário não autenticado.");
       return;
     }
-  
+
     try {
       setLoading(true);
-  
+
       // Exclui o documento da coleção 'users'
       const docRefUsers = doc(db, "users", user.uid);
       await deleteDoc(docRefUsers);
-  
+
       // Exclui o documento da coleção 'login'
       const docRefLogin = doc(db, "login", user.uid);
       await deleteDoc(docRefLogin);
-  
+
       // Remove a conta do Firebase Authentication
       await auth.currentUser.delete();
-  
+
       // Limpa o estado do usuário e redireciona
       await logout();
       toast.success("Perfil excluído com sucesso.");
@@ -141,7 +156,7 @@ function PerfilUsuario() {
     } finally {
       setLoading(false);
     }
-  } 
+  }
 
 
 
@@ -157,9 +172,11 @@ function PerfilUsuario() {
         <Box mb={3}>
           <Avatar
             alt="Foto do Usuário"
-            src={imageAvatar || ""}
+            src={`${imageAvatar || ""}?t=${Date.now()}`}
             sx={{ width: 100, height: 100, margin: "0 auto" }}
           />
+
+
           <Button variant="contained" component="label" sx={{ mt: 2 }}>
             Alterar Foto
             <input type="file" hidden onChange={handleFotoChange} />
@@ -180,13 +197,27 @@ function PerfilUsuario() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+
           <TextField
             fullWidth
             label="Telefone"
             type="tel"
             value={telefone}
-            onChange={(e) => setTelefone(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+              const formattedValue = value
+                .replace(/^(\d{2})(\d)/, '($1) $2') // Adiciona parênteses ao DDD
+                .replace(/(\d{4,5})(\d{4})$/, '$1-$2'); // Adiciona o traço
+              setTelefone(formattedValue); // Atualiza o estado com o telefone formatado
+            }}
+            inputProps={{
+              maxLength: 15, // Máximo de caracteres considerando o formato completo
+              autoComplete: 'off',
+            }}
+            helperText=""
+            required
           />
+
           <TextField
             fullWidth
             label="Endereço"
@@ -217,13 +248,13 @@ function PerfilUsuario() {
           </Button>
 
           <Button
-           variant="outlined"
-           color="error"
-           onClick={() => excluirPerfil(user, logout, navigate)}
-           disabled={loading}         >
-           {loading ? "Excluindo..." : "Excluir Perfil"}
-         </Button>
-          
+            variant="outlined"
+            color="error"
+            onClick={() => excluirPerfil(user, logout, navigate)}
+            disabled={loading}         >
+            {loading ? "Excluindo..." : "Excluir Perfil"}
+          </Button>
+
 
         </Box>
       </Box>
