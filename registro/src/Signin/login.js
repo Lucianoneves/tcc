@@ -19,7 +19,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || email.length <5 || email.length >25) {
+    if (!email || email.length <5 || email.length >50) {
       toast.error("O e-mail deve ter entre 5 e 25 caracteres.");
       return;
     }
@@ -121,7 +121,7 @@ function Login() {
             required
             autoComplete="email" // Sugestão específica para o navegador ignorar histórico
              inputProps={{ minLength: 5, maxLength: 50 }} // Limites de caracteres
-            helperText="O e-mail deve ter entre 5 e 25 caracteres."
+            helperText="O e-mail deve ter entre 5 e 50 caracteres."
           />
         </Grid>
 

@@ -80,12 +80,7 @@ function PerfilUsuario() {
       .replace(/^(\d{2})(\d)/, '($1) $2') // Adiciona parênteses ao DDD
       .replace(/(\d{4,5})(\d{4})$/, '$1-$2'); // Adiciona o traço
     setTelefone(formattedValue); // Atualiza o estado com o telefone formatado
-  };
-
-
-
-
-  
+  };  
   
 
 
@@ -96,38 +91,61 @@ function PerfilUsuario() {
 
 
 
-  async function excluirPerfil(user, logout, navigate) {
+   // Exclusão do perfil do usuario 
+   async function excluirPerfil(user, logout, navigate) {
     if (!user || !user.uid) {
       toast.error("Usuário não autenticado.");
       return;
     }
-
+  
     try {
       setLoading(true);
-
+  
       // Exclui o documento da coleção 'users'
       const docRefUsers = doc(db, "users", user.uid);
       await deleteDoc(docRefUsers);
-
+  
       // Exclui o documento da coleção 'login'
       const docRefLogin = doc(db, "login", user.uid);
       await deleteDoc(docRefLogin);
+  
+      // Exclui ocorrências associadas ao usuário
+      const ocorrenciasRef = collection(db, "ocorrencias");
+      // Consulta para obter as ocorrências onde o campo usuarioId corresponde ao UID do usuário
 
+      const ocorrenciasSnap = await getDocs(ocorrenciasRef);
+      const ocorrenciasPromises = ocorrenciasSnap.docs
+        .filter(doc => doc.data().usuarioId === user.uid) // Filtra pelas ocorrências do usuário
+        .map(doc =>{
+          console.log(`Excluindo ocorrência com ID: ${doc.id}`);
+         return deleteDoc(doc.ref); // Cria uma promessa para deletar cada documento
+        });
+  
+      await Promise.all(ocorrenciasPromises); // Aguarda a exclusão de todas as ocorrências
+  
+      // Exclui a foto de perfil do Storage (se existir)
+      if (user.fotoPerfil) {
+        const fotoRef = ref(storage, `profile_pictures/${user.uid}`);
+        await deleteObject(fotoRef);
+      }
+  
       // Remove a conta do Firebase Authentication
       await auth.currentUser.delete();
-
+  
       // Limpa o estado do usuário e redireciona
       await logout();
-      toast.success("Perfil excluído com sucesso.");
+      toast.success("Perfil e todas as ocorrências relacionadas foram excluídos com sucesso.");
       navigate("/");
     } catch (error) {
-      console.error("Erro ao excluir perfil:", error);
+      console.error("Erro ao excluir perfil e dados relacionados:", error);
       toast.error("Erro ao excluir perfil. Tente novamente.");
     } finally {
       setLoading(false);
     }
   }
-
+  
+  
+ 
   const handleSalvarAlteracoes = async (e) => {
     e.preventDefault(); // Evita a ação padrão do formulário
     if (!user?.uid) {

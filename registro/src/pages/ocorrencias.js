@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem
-} from '@mui/material';
+import {    Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem}
+ from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
 import { db, storage } from "../services/firebaseConnection";  // Importando storage
@@ -40,12 +39,14 @@ const Ocorrencias = () => {
     const user = auth.currentUser;  // Obtém o usuário logado
     const [observacoes, setObservacoes] = useState('');
     const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);  // Estado para verificar se o usuário é admin
 
 
 
     useEffect(() => {
         const usuarioAdmin = localStorage.getItem('isAdmin');
-        if (usuarioAdmin !== 'true') {
+        if (usuarioAdmin !== 'true' && user) {
+            setIsAdmin(true); 
             navigate('/login');  // Redirecionar para login se não for admin
         }
     }, [navigate]);

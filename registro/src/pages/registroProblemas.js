@@ -105,6 +105,9 @@ function RegistroProblemas() {
 
 
 
+
+
+
   useEffect(() => {
     const fetchOcorrencias = async () => {
       const ocorrenciasRef = collection(db, "ocorrencias");
@@ -248,21 +251,21 @@ function RegistroProblemas() {
 
   const handleEditarClick = (id) => {
     const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
-    
+
     if (ocorrenciaSelecionada) {
       setOcorrenciaEditar(ocorrenciaSelecionada);  // Preenche o estado com a ocorrência selecionada
       setNovaOcorrencia(ocorrenciaSelecionada.descricao);  // Preenche o campo de descrição
       setObservacoes(ocorrenciaSelecionada.observacoes);  // Preenche o campo de observações
     }
   };
-  
-  
 
 
 
 
 
-  
+
+
+
   const handleSalvarEdicao = async () => {
     if (ocorrenciaEditar) {
       try {
@@ -271,28 +274,28 @@ function RegistroProblemas() {
           descricao: novaOcorrencia,
           observacoes: observacoes,
         });
-        
+
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
             return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes };
           }
           return ocorrencia;
         });
-        
+
         setOcorrencias(novaListaOcorrencias);
         setNovaOcorrencia("");
         setObservacoes("");
         setOcorrenciaEditar(null);
-  
+
       } catch (error) {
         console.error("Erro ao salvar edição:", error);
       }
     }
   };
-  
-  
-  
-  
+
+
+
+
 
 
 
@@ -560,9 +563,9 @@ function RegistroProblemas() {
                   <Button variant="outlined" color="error" onClick={() => handleRemoverOcorrencia(o.id)}>
                     Remover
                   </Button>
-                  <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>  
-                   Salvar
-                   </Button>
+                  <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
+                    Salvar
+                  </Button>
                 </Box>
               </Box>
             </ListItem>
