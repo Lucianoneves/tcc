@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
-import { collection, doc, addDoc, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, doc, addDoc, query, where, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
+import { toast } from 'react-toastify';
+
 
 
 
@@ -107,20 +109,45 @@ function RegistroProblemas() {
 
 
 
-
-  useEffect(() => {
-    const fetchOcorrencias = async () => {
+  const fetchOcorrencias = async () => {
+    try {
+      // Se o user.uid não estiver definido, não faça a busca
+      if (!user?.uid) {
+        console.error("Usuário não autenticado.");
+        return;
+      }
+  
       const ocorrenciasRef = collection(db, "ocorrencias");
-      const querySnapshot = await getDocs(ocorrenciasRef);
-      const ocorrenciasList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+  
+      // Consulta para buscar ocorrências do usuário logado
+      const q = query(ocorrenciasRef, where("usuarioId", "==", user.uid)); 
+  
+      const querySnapshot = await getDocs(q);
+  
+      if (querySnapshot.empty) {
+        console.log("Nenhuma ocorrência encontrada.");
+        setOcorrencias([]); // Atualiza para estado vazio se não encontrar ocorrências
+        return;
+      }
+  
+      const ocorrenciasList = [];
+      querySnapshot.forEach((doc) => {
+        ocorrenciasList.push({ id: doc.id, ...doc.data() });
+      });
+  
+      // Atualiza o estado com as ocorrências filtradas
       setOcorrencias(ocorrenciasList);
-    };
-
-    fetchOcorrencias();
-  }, []);
+    } catch (error) {
+      console.error("Erro ao buscar ocorrências:", error);
+      toast.error("Erro ao carregar as ocorrências.");
+    }
+  };
+  
+  useEffect(() => {
+    if (user?.uid) {
+      fetchOcorrencias(); // Chama a função para carregar as ocorrências do usuário logado
+    }
+  }, [user?.uid]);
 
 
 

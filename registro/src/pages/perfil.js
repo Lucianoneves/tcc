@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { Button, TextField, Container, Box, List, ListItem, Typography, Avatar } from "@mui/material";
 import { AuthContext } from "../contexts/auth";
 import { db, storage, auth } from "../services/firebaseConnection";
-import { doc, getDoc, getDocs, updateDoc, setDoc, collection, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, updateDoc, setDoc, collection, deleteDoc,query,where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useNavigate } from "react-router-dom"; // Importa o hook para navegação
 import { updateProfile } from "firebase/auth";
@@ -88,6 +88,49 @@ function PerfilUsuario() {
   const handleIrParaRegistroProblemas = () => {
     navigate("/registroProblemas");
   };
+
+
+
+
+  const fetchOcorrencias = async () => {
+    try {
+     // Se o user.uid não estiver definido, não faça a busca
+    if (!user?.uid) {
+      console.error("Usuário não autenticado.");
+      return;
+    }
+
+    const ocorrenciasRef = collection(db, "ocorrencias");
+
+    // Consulta para buscar ocorrências do usuário logado
+    const q = query(ocorrenciasRef, where("usuarioId", "==", user.uid)); 
+  
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      console.log("Nenhuma ocorrência encontrada.");
+      setOcorrencias([]); // Atualiza para estado vazio se não encontrar ocorrências
+      return;
+    }
+    const ocorrenciasList = [];
+    querySnapshot.forEach((doc) => {
+      ocorrenciasList.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Atualiza o estado com as ocorrências filtradas
+    setOcorrencias(ocorrenciasList);
+  } catch (error) {
+    console.error("Erro ao buscar ocorrências:", error);
+    toast.error("Erro ao carregar as ocorrências.");
+  }
+};
+
+useEffect(() => {
+  if (user?.uid) {
+    fetchOcorrencias(); // Chama a função para carregar as ocorrências do usuário logado
+  }
+}, [user?.uid]);
+    
 
 
 
