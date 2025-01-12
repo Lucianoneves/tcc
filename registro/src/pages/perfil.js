@@ -16,10 +16,12 @@ function PerfilUsuario() {
   const [email, setEmail] = useState(user?.email || "");
   const [telefone, setTelefone] = useState(user?.telefone || "");
   const [endereco, setEndereco] = useState(user?.endereco || "");
-  const [imageAvatar, setImageAvatar] = useState(user?.avatarUrl || null);
+  const [fotoPerfil, setFotoPerfil] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate(); // Hook para navegação
   const [ocorrencias, setOcorrencias] = useState([]);
+
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -33,97 +35,65 @@ function PerfilUsuario() {
           setEmail(userData.email || "");
           setTelefone(userData.telefone || "");
           setEndereco(userData.endereco || "");
-          setImageAvatar(userData.avatarUrl || null);
+          setFotoPerfil(userData.fotoPerfil || "");
+
+          // Verificar se a URL da foto está sendo carregada corretamente
+          console.log("Foto de perfil recuperada:", userData.fotoPerfil);
+          setFotoPreview(userData.fotoPerfil || null); // Define a foto de perfil se houver
         }
       })
-      .catch((error) => console.error("Erro ao carregar dados:", error));
+      .catch((error) => {
+        console.error("Erro ao carregar dados:", error);
+        alert("Erro ao carregar dados. Tente novamente.");
+      });
   }, [user?.uid]);
 
-  const handleSalvarAlteracoes = async () => {
-    if (!user?.uid) {
-      alert("Usuário não identificado.");
-      return;
-    }
 
-    setLoading(true);
-    const userDocRef = doc(db, "users", user.uid);
 
-    try {
-      const docSnap = await getDoc(userDocRef);
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
 
-        const updates = {};
-        if (userData.nome !== nome.trim()) updates.nome = nome.trim();
-        if (userData.telefone !== telefone.trim()) updates.telefone = telefone.trim();
-        if (userData.endereco !== endereco.trim()) updates.endereco = endereco.trim();
-        if (userData.avatarUrl !== imageAvatar) updates.avatarUrl = imageAvatar;
-
-        if (Object.keys(updates).length > 0) {
-          await updateDoc(userDocRef, updates);
-          alert("Alterações salvas com sucesso!");
-        } else {
-          alert("Nenhuma alteração detectada.");
-        }
-      } else {
-        await setDoc(userDocRef, {
-          nome: nome.trim(),
-          telefone: telefone.trim(),
-          endereco: endereco.trim(),
-          avatarUrl: imageAvatar,
-        });
-        alert("Documento criado com sucesso!");
-      }
-    } catch (error) {
-      console.error("Erro ao salvar as alterações:", error);
-      alert("Erro ao salvar as alterações. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
     alert("Você saiu com sucesso!");
   };
 
-  const handleFotoChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file) {
-      alert("Nenhum arquivo selecionado.");
-      return;
-    }
-  
-    const storageRef = ref(storage, `avatars/${user.uid}/${Date.now()}_${file.name}`);
-    try {
-      // Envia o arquivo para o Firebase Storage
-      await uploadBytes(storageRef, file);
-  
-      // Obtém a URL de download
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log("Nova URL da imagem:", downloadURL);  // Verifique se a URL está correta.
-  
-      // Atualiza o estado da imagem
-      setImageAvatar(downloadURL);
-  
-      // Atualiza o Firestore com a URL da imagem
-      const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, { avatarUrl: downloadURL });
-  
-      // Atualiza a foto do perfil no Firebase Authentication
-      await updateProfile(auth.currentUser, { photoURL: downloadURL });
-  
-      alert("Foto de perfil atualizada com sucesso!");
-    } catch (error) {
-      console.error("Erro ao alterar a foto de perfil:", error);
-      alert("Erro ao alterar a foto de perfil. Tente novamente.");
+
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith("image/")) { // Verifica se o arquivo é uma imagem
+      setFotoPerfil(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert("Por favor, selecione um arquivo de imagem.");
     }
   };
   
 
+
+  const handleTelefoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+    const formattedValue = value
+      .replace(/^(\d{2})(\d)/, '($1) $2') // Adiciona parênteses ao DDD
+      .replace(/(\d{4,5})(\d{4})$/, '$1-$2'); // Adiciona o traço
+    setTelefone(formattedValue); // Atualiza o estado com o telefone formatado
+  };
+
+
+
+
+  
+  
+
+
+
   const handleIrParaRegistroProblemas = () => {
     navigate("/registroProblemas");
   };
+
 
 
   async function excluirPerfil(user, logout, navigate) {
@@ -158,44 +128,95 @@ function PerfilUsuario() {
     }
   }
 
-
+  const handleSalvarAlteracoes = async (e) => {
+    e.preventDefault(); // Evita a ação padrão do formulário
+    if (!user?.uid) {
+      alert("Usuário não identificado.");
+      return;
+    }
+  
+    setLoading(true);  // Inicia o carregamento
+    const userDocRef = doc(db, "users", user.uid);
+  
+    try {
+      const docSnap = await getDoc(userDocRef);
+      const updates = {};
+  
+      if (fotoPerfil) {
+        // Faz o upload da nova foto de perfil para o Firebase Storage
+        const fotoRef = ref(storage, `profile_pictures/${user.uid}`);
+        await uploadBytes(fotoRef, fotoPerfil);
+  
+        // Obtém a URL da foto após o upload
+        const fotoURL = await getDownloadURL(fotoRef);
+  
+        updates.fotoPerfil = fotoURL;  // Atualiza a URL da foto
+      }
+  
+      // Verifica as alterações nos dados
+      if (nome !== user?.nome) updates.nome = nome.trim();
+      if (telefone !== user?.telefone) updates.telefone = telefone.trim();
+      if (endereco !== user?.endereco) updates.endereco = endereco.trim();
+      if (fotoPerfil !== user?.fotoPerfil) updates.fotoPerfil = fotoPerfil.trim();
+  
+      // Atualiza o Firestore apenas se houver alterações
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(userDocRef, updates);
+        toast.success("Alterações salvas com sucesso!"); // Feedback ao usuário
+      } else {
+        toast.info("Nenhuma alteração detectada.");
+      }
+    } catch (error) {
+      console.error("Erro ao salvar as alterações:", error);
+      toast.error("Erro ao salvar as alterações. Tente novamente.");
+    } finally {
+      setLoading(false);  // Termina o carregamento após finalizar todas as operações
+    }
+  };
+  
 
 
 
   return (
-    <Container maxWidth="sm">
-      <Box mt={4} textAlign="center">
-        <Typography variant="h4" gutterBottom>
-          Perfil do Usuário
-        </Typography>
+    <>
+      <Container maxWidth="sm">
+        <Box mt={4} textAlign="center">
+          <Typography variant="h4" gutterBottom>
+            Perfil do Usuário
+          </Typography>
 
-        <Box mb={3}>
-          <Avatar
-            alt="Foto do Usuário"
-            src={`${imageAvatar || ""}?t=${Date.now()}`}
-            sx={{ width: 100, height: 100, margin: "0 auto" }}
-          />
+          <Box mb={3}>
+            <Typography>Upload Foto de Perfil</Typography>
+            <Button variant="contained" component="label">
+              Escolher Foto
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleFotoChange}
+              />
+            </Button>
+          </Box>
 
+          {fotoPreview && (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: 2,
+              }}
+            >
+              <Avatar src={fotoPreview} sx={{ width: 150, height: 150 }} />
+            </Box>
+          )}
 
-          <Button variant="contained" component="label" sx={{ mt: 2 }}>
-            Alterar Foto
-            <input type="file" hidden onChange={handleFotoChange} />
-          </Button>
-        </Box>
-
-        <Box component="form" sx={{ "& .MuiTextField-root": { mb: 2 }, mt: 2 }}>
-          <TextField
-            fullWidth
-            label="Nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-          />
           <TextField
             fullWidth
             label="E-mail"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            sx={{ mb: 2 }}
           />
 
           <TextField
@@ -203,19 +224,14 @@ function PerfilUsuario() {
             label="Telefone"
             type="tel"
             value={telefone}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, ''); // Remove caracteres não numéricos
-              const formattedValue = value
-                .replace(/^(\d{2})(\d)/, '($1) $2') // Adiciona parênteses ao DDD
-                .replace(/(\d{4,5})(\d{4})$/, '$1-$2'); // Adiciona o traço
-              setTelefone(formattedValue); // Atualiza o estado com o telefone formatado
-            }}
+            onChange={handleTelefoneChange}
             inputProps={{
               maxLength: 15, // Máximo de caracteres considerando o formato completo
               autoComplete: 'off',
             }}
-            helperText=""
+            helperText="Digite o número de telefone no formato correto."
             required
+            sx={{ mb: 2 }}
           />
 
           <TextField
@@ -223,19 +239,24 @@ function PerfilUsuario() {
             label="Endereço"
             value={endereco}
             onChange={(e) => setEndereco(e.target.value)}
+            sx={{ mb: 2 }}
           />
         </Box>
 
         <Box mt={3}>
           <Button
+            type="button" // Impede o envio do formulário
             variant="contained"
             color="primary"
-            onClick={handleSalvarAlteracoes}
+            onClick={handleSalvarAlteracoes} // Chama diretamente a função
             disabled={loading}
             sx={{ mr: 2 }}
           >
-            {loading ? "Salvando..." : "Salvar Alterações"}
+            {loading ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
+
+
+
           <Button variant="outlined" color="error" onClick={handleLogout} sx={{ mr: 2 }}>
             Sair
           </Button>
@@ -243,36 +264,24 @@ function PerfilUsuario() {
             variant="contained"
             color="secondary"
             onClick={handleIrParaRegistroProblemas}
+            sx={{ mr: 2 }}
           >
             Registro de Problemas
           </Button>
-
           <Button
             variant="outlined"
             color="error"
             onClick={() => excluirPerfil(user, logout, navigate)}
-            disabled={loading}         >
-            {loading ? "Excluindo..." : "Excluir Perfil"}
+            disabled={loading}
+          >
+            {loading ? 'Excluindo...' : 'Excluir Perfil'}
           </Button>
-
-
         </Box>
-      </Box>
-
-      <List>
-        {ocorrencias.map((o) => (
-          <ListItem key={o.id}>
-            <Typography>
-              Ocorrência: {o.descricao} - Registrada por: {o.usuarioNome} (ID: {o.usuarioId})
-            </Typography>
-          </ListItem>
-        ))}
-      </List>
 
 
-
-    </Container>
+      </Container>
+    </>
   );
-}
+};
 
 export default PerfilUsuario;

@@ -10,11 +10,11 @@ import { getAuth, deleteUser, createUserWithEmailAndPassword, signInWithEmailAnd
 
 function Login() {
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [senha, setSenha] = useState(""); 
   const navigate = useNavigate();
 
   // Obtendo a função de login e o estado de carregamento do contexto
-  const { login, loadingAuth, user } = useContext(AuthContext);
+  const { login, loadingAuth, user } = useContext(AuthContext);  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,7 +141,7 @@ function Login() {
         </Grid>
 
         <Grid item xs={12}>
-          <Button type="submit" variant="contained" fullWidth>
+          <Button type="submit" variant="contained" fullWidth>   
             {loadingAuth ? "Carregando..." : "Acessar"}
           </Button>
         </Grid>

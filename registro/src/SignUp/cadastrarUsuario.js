@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/auth';
 import { Box, Button, TextField, Typography, Avatar } from '@mui/material';
 import { toast } from 'react-toastify';
+import { storage } from "../services/firebaseConnection";
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; 
 
 function CadastrarUsuario() {
   const [nome, setNome] = useState('');
@@ -16,11 +18,12 @@ function CadastrarUsuario() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const navigate = useNavigate();
-  const { cadastrarUsuario, loadingAuth } = useContext(AuthContext);
+  const { cadastrarUsuario, loadingAuth } = useContext(AuthContext); 
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault();   
 
+ 
 
 
     // Validações
@@ -29,8 +32,8 @@ function CadastrarUsuario() {
       return;
     }
 
-    if (cpf.length !== 11) {
-      alert('Os e-mails não coincidem.');
+    if (cpf.replace(/\D/g, '').length !== 11) {
+      toast.error('O CPF deve conter exatamente 11 dígitos numéricos.');
       return;
     }
 
@@ -39,11 +42,11 @@ function CadastrarUsuario() {
       return;
     }
 
-    if (telefone.length < 10 || telefone.length > 1) {
-      toast.error('O telefone deve ter entre 10 e 13 dígitos.');
+    if (telefone.replace(/\D/g, '').length < 10 || telefone.replace(/\D/g, '').length > 13) {
+      toast.error('O telefone deve conter entre 10 e 13 dígitos.');
       return;
     }
-
+    
     if (email.length < 5 || email.length > 50 || email !== confirmarEmail) {
       toast.error('Os e-mails devem coincidir e ter entre 5 e 50 caracteres.');
       return;
@@ -55,7 +58,7 @@ function CadastrarUsuario() {
     }
 
     try {
-      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone);
+      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone,fotoPerfil);
 
       // Resetando o formulário
       resetForm();
@@ -80,18 +83,29 @@ function CadastrarUsuario() {
     setConfirmarSenha('');
   };
 
-  const handleFotoChange = (e) => {
+  const handleFotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFotoPerfil(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFotoPreview(reader.result);
       };
       reader.readAsDataURL(file);
+  
+      // Faz o upload para o Firebase Storage
+      try {
+        const storageRef = ref(storage, `perfilFotos/${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        setFotoPerfil(downloadURL); // Salva o URL da foto no estado
+        toast.success('Foto de perfil enviada com sucesso!');
+      } catch (error) {
+        console.error('Erro ao enviar foto para o Firebase:', error);
+        toast.error('Erro ao enviar foto de perfil.');
+      }
     }
   };
-
+  
 
 
 

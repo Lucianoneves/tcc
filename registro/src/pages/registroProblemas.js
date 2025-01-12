@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
-import { collection, addDoc, getDocs, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 
@@ -36,6 +36,11 @@ function RegistroProblemas() {
   const storage = getStorage(); // Esta linha cria a referência para o Firebase Storage
   const [observacoes, setObservacoes] = useState('');
   const [o, setO] = useState({ status: 'Pendente' });
+  const [problemas, setProblemas] = useState([]);
+  const [dataOcorrencia, setDataOcorrencia] = useState('');
+  const [ocorrenciaEditar, setOcorrenciaEditar] = useState(null); // Ocorrência a ser editada  
+  const [ocorrencia, setOcorrencia] = useState({});
+
 
 
 
@@ -65,10 +70,10 @@ function RegistroProblemas() {
 
   const [status, setStatus] = useState('Pendente');
 
-// Atualizando o status para "Em Análise"
-useEffect(() => {
-  setTimeout(() => setStatus('Em Análise'), 2000); // Simulando uma mudança
-}, []);
+  // Atualizando o status para "Em Análise"
+  useEffect(() => {
+    setTimeout(() => setStatus('Em Análise'), 2000); // Simulando uma mudança
+  }, []);
 
 
 
@@ -110,10 +115,10 @@ useEffect(() => {
       }));
       setOcorrencias(ocorrenciasList);
     };
-  
+
     fetchOcorrencias();
   }, []);
-  
+
 
 
 
@@ -149,9 +154,17 @@ useEffect(() => {
     }
   }, [ocorrencias]);
 
+  function marcarParaEditar(ocorrencia) {
+    // Lógica para editar a ocorrência
+    setOcorrencia(ocorrencia);
+    console.log(ocorrencia);
+  }
+
 
 
   const handleAdicionarOcorrencia = async () => {
+    const dataAtual = new Date(); // Pega a data e hora atual
+    const dataFormatada = dataAtual.toLocaleString(); // Formata a data para exibir em formato legível
     if (novaOcorrencia.trim()) {
       const nova = {
         usuarioId: user.uid,
@@ -159,27 +172,29 @@ useEffect(() => {
         observacoes, // Adiciona as observações aqui
         status: '',
         data: new Date(),
+        data: dataFormatada, // Adiciona a data à nova ocorrência
+
         media: [], // Aqui, será adicionada a URL do arquivo.
       };
-  
+
       console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
-  
+
       try {
         // Adicionar no Firestore
         const docRef = await addDoc(collection(db, "ocorrencias"), nova);
         console.log("Ocorrência registrada com ID:", docRef.id);
-  
+
         // Verificar se há um arquivo selecionado
         if (selectedFile) {
           const fileRef = ref(storage, `ocorrencias/${docRef.id}/${selectedFile.name}`);
           await uploadBytes(fileRef, selectedFile);
           const fileURL = await getDownloadURL(fileRef);
-  
+
           // Atualizar a ocorrência com a URL do arquivo
           await updateDoc(docRef, { media: [fileURL] });
           console.log("Arquivo enviado e URL registrada no Firestore.");
         }
-  
+
         // Adicionar no estado para atualizar a UI
         setOcorrencias((prev) => [...prev, { id: docRef.id, ...nova }]);
         setNovaOcorrencia(''); // Limpar o campo de entrada
@@ -200,7 +215,111 @@ useEffect(() => {
       setSnackbarOpen(true);
     }
   };
+
+
+  const handleEditarOcorrencia = async (id) => {
+    const ocorrenciaRef = doc(db, "ocorrencias", id); // Referência para a ocorrência que será editada
+
+    // Atualizando os campos da ocorrência
+    try {
+      await updateDoc(ocorrenciaRef, {
+        descricao: novaOcorrencia, // Atualiza a descrição
+        observacoes: observacoes,  // Atualiza as observações
+        status: o.status,          // Atualiza o status
+        // Outros campos que você queira atualizar
+      });
+
+      setOcorrencias((prev) =>
+        prev.map((o) =>
+          o.id === id ? { ...o, descricao: novaOcorrencia, observacoes } : o
+        )
+      );
+
+      setSnackbarMessage('Ocorrência editada com sucesso!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Erro ao editar ocorrência: ", error);
+      setSnackbarMessage('Erro ao editar a ocorrência.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleEditarClick = (id) => {
+    const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
+    
+    if (ocorrenciaSelecionada) {
+      setOcorrenciaEditar(ocorrenciaSelecionada);  // Preenche o estado com a ocorrência selecionada
+      setNovaOcorrencia(ocorrenciaSelecionada.descricao);  // Preenche o campo de descrição
+      setObservacoes(ocorrenciaSelecionada.observacoes);  // Preenche o campo de observações
+    }
+  };
   
+  
+
+
+
+
+
+  
+  const handleSalvarEdicao = async () => {
+    if (ocorrenciaEditar) {
+      try {
+        const novaOcorrenciaRef = doc(db, "ocorrencias", ocorrenciaEditar.id);
+        await updateDoc(novaOcorrenciaRef, {
+          descricao: novaOcorrencia,
+          observacoes: observacoes,
+        });
+        
+        const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
+          if (ocorrencia.id === ocorrenciaEditar.id) {
+            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes };
+          }
+          return ocorrencia;
+        });
+        
+        setOcorrencias(novaListaOcorrencias);
+        setNovaOcorrencia("");
+        setObservacoes("");
+        setOcorrenciaEditar(null);
+  
+      } catch (error) {
+        console.error("Erro ao salvar edição:", error);
+      }
+    }
+  };
+  
+  
+  
+  
+
+
+
+
+
+  const handleRemoverOcorrencia = async (id) => {
+    try {
+      // Remover do Firestore
+      const ocorrenciaRef = doc(db, "ocorrencias", id);
+      await deleteDoc(ocorrenciaRef);
+
+      // Remover do estado e atualizar localStorage
+      setOcorrencias((prev) => prev.filter((o) => o.id !== id));
+      localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias.filter((o) => o.id !== id)));
+
+      setSnackbarMessage('Ocorrência removida com sucesso!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Erro ao remover ocorrência: ", error);
+      setSnackbarMessage('Erro ao remover a ocorrência.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+
 
 
   const handleSubmit = async () => {
@@ -247,9 +366,16 @@ useEffect(() => {
 
 
 
+
+  // Estado para controlar os checkboxes
+
+
+  // Função para alternar o estado do checkbox
   const handleCheckboxChange = (id) => {
-    setSelecionadas((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    setSelecionadas((prevSelecionadas) =>
+      prevSelecionadas.includes(id)
+        ? prevSelecionadas.filter((itemId) => itemId !== id)  // Remove se já estiver selecionado
+        : [...prevSelecionadas, id]  // Adiciona se não estiver selecionado
     );
   };
 
@@ -373,7 +499,16 @@ useEffect(() => {
       setImagens(prevImagens => [...prevImagens, ...newImagens]);
     }
   };
-  
+
+
+
+  const handleDateChange = (e) => {
+    setDataOcorrencia(e.target.value);
+  };
+
+
+
+
   return (
     <Container maxWidth="sm">
       <Box sx={{ mb: 3 }}>
@@ -390,42 +525,52 @@ useEffect(() => {
         </Typography>
 
         <List>
-        {ocorrencias.map((o) => (
-    <ListItem key={o.id}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={selecionadas.includes(o.id)}
-            onChange={() => handleCheckboxChange(o.id)}
-          />
-        }
-        label={
-          <Box>
+          {ocorrencias.map((o) => (
+            <ListItem key={o.id}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                <Box>
+                  <Typography variant="body2">
+                    <strong>Descrição:</strong> {o.descricao}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Observações:</strong> {o.observacoes}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Data da Ocorrência:</strong> {o.data}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: (() => {
+                        const status = (o?.status || 'Pendente').trim().toLowerCase();
+                        if (status === 'pendente') return 'red';
+                        if (status === 'concluído') return 'green';
+                        if (status === 'em análise') return 'orange';
+                        return 'black';
+                      })(),
+                    }}
+                  >
+                    Status: {o?.status || 'Pendente'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
+                    Editar
+                  </Button>
+                  <Button variant="outlined" color="error" onClick={() => handleRemoverOcorrencia(o.id)}>
+                    Remover
+                  </Button>
+                  <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>  
+                   Salvar
+                   </Button>
+                </Box>
+              </Box>
+            </ListItem>
+          ))}
+        </List>
 
-        <Typography
-          variant="body2"
-          sx={{
-            color: (() => {
-              const status = (o?.status || 'Pendente').trim().toLowerCase(); // Normaliza o valor
-              if (status === 'pendente') return 'red'; // Cor cinza
-              if (status === 'concluído') return 'green'; // Cor verde
-              if (status === 'em análise') return 'orange'; // Cor laranja
-              return 'black'; // Cor padrão
-            })(),
-          }}
-        >
-          Status: {o?.status || 'Pendente'} {/* Valor padrão para exibição */}
-        </Typography>
 
 
-           
-          </Box>
-        }
-      />
-    </ListItem>
-  ))}
-</List>
-        
       </Paper>
 
       <Box mt={4}>
@@ -515,6 +660,7 @@ useEffect(() => {
     </Container>
   )
 }
+
 
 
 export default RegistroProblemas;

@@ -19,7 +19,7 @@ const StatusSpan = styled('span')(({ status }) => ({
     borderRadius: '4px',
     color: '#fff',
     backgroundColor:
-        status === 'Em análise' ? '#ff9800' :
+        status === 'Em andamento' ? '#FFA500' :
         status === 'Pendente' ? '#f44336' :
         status === 'Concluído' ? '#4caf50' : '#9e9e9e'
 }));
@@ -28,7 +28,7 @@ const Ocorrencias = () => {
     const navigate = useNavigate();
     const [ocorrencias, setOcorrencias] = useState([]);
     const [novaOcorrencia, setNovaOcorrencia] = useState('');
-    const [descricaoEditada, setDescricaoEditada] = useState('');
+    const [descricaoEditada, setdescricaoEditada] = useState('');
     const [statusEditado, setStatusEditado] = useState('');
     const [editandoOcorrencia, setEditandoOcorrencia] = useState(null);
     const [selecionadas, setSelecionadas] = useState([]);
@@ -338,7 +338,7 @@ const Ocorrencias = () => {
                 <>
                     <TextField
                         value={descricaoEditada}
-                        onChange={(e) => setDescricaoEditada(e.target.value)}
+                        onChange={(e) => setdescricaoEditada(e.target.value)}
                         fullWidth
                         label="Descrição"
                     />
@@ -350,7 +350,7 @@ const Ocorrencias = () => {
                         select
                     >
                         <MenuItem value="Pendente">Pendente</MenuItem>
-                        <MenuItem value="Em análise">Em análise</MenuItem>
+                        <MenuItem value="Em Andamento">Em Andamento</MenuItem>
                         <MenuItem value="Concluído">Concluído</MenuItem>
                     </TextField>
                     <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
@@ -371,7 +371,7 @@ const Ocorrencias = () => {
                         }
                     />
                     <Button onClick={() => {
-                        setDescricaoEditada(ocorrencia.descricao);
+                        setdescricaoEditada(ocorrencia.descricao);
                         setStatusEditado(ocorrencia.status);
                         setEditandoOcorrencia(ocorrencia.id);
                     }}>Editar</Button>
