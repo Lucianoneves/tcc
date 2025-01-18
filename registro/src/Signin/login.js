@@ -10,16 +10,16 @@ import { getAuth, deleteUser, createUserWithEmailAndPassword, signInWithEmailAnd
 
 function Login() {
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState(""); 
+  const [senha, setSenha] = useState("");
   const navigate = useNavigate();
 
   // Obtendo a função de login e o estado de carregamento do contexto
-  const { login, loadingAuth, user } = useContext(AuthContext);  
+  const { login, loadingAuth, user } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || email.length <5 || email.length >50) {
+    if (!email || email.length < 5 || email.length > 50) {
       toast.error("O e-mail deve ter entre 5 e 25 caracteres.");
       return;
     }
@@ -120,7 +120,7 @@ function Login() {
             type="email"
             required
             autoComplete="email" // Sugestão específica para o navegador ignorar histórico
-             inputProps={{ minLength: 5, maxLength: 50 }} // Limites de caracteres
+            inputProps={{ minLength: 5, maxLength: 50 }} // Limites de caracteres
             helperText="O e-mail deve ter entre 5 e 50 caracteres."
           />
         </Grid>
@@ -141,7 +141,7 @@ function Login() {
         </Grid>
 
         <Grid item xs={12}>
-          <Button type="submit" variant="contained" fullWidth>   
+          <Button type="submit" variant="contained" fullWidth>
             {loadingAuth ? "Carregando..." : "Acessar"}
           </Button>
         </Grid>

@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 
 
 
-export const AuthContext = createContext({});
+export const AuthContext = createContext({});  // espalhar de forma global os estados para outras paginas 
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -39,7 +39,7 @@ function AuthProvider({ children }) {
       if (currentUser) {
         const uid = currentUser.uid;
         const docRef = doc(db, "users", uid);
-        const docSnap = await getDoc(docRef);
+        const docSnap = await getDoc(docRef); 
 
         if (docSnap.exists()) {
           const userData = {
@@ -125,7 +125,7 @@ function AuthProvider({ children }) {
   // Registro de problemas
   const handleReg = async () => {
     if (!titulo.trim() || !descricao.trim()) {
-      toast.error("Preencha todos os campos!");
+      toast.error("Preencha todos os campos!"); 
       return;
     }
     if (!user?.uid) {
@@ -139,10 +139,13 @@ function AuthProvider({ children }) {
       data: new Date(),
       usuarioId: user.uid,
       nomeUsuario: user.nome,
+      
+      
+     
     };
 
     try {
-      await addDoc(collection(db, "ocorrencias"), novaOcorrencia);
+      await addDoc(collection(db, "ocorrencias"), novaOcorrencia); 
       toast.success("Ocorrência registrada com sucesso!");
       navigate("/listaDeOcorrencias");
     } catch (error) {
@@ -152,7 +155,7 @@ function AuthProvider({ children }) {
   };
 
   // Cadastrar Novo Usuário
-  async function cadastrarUsuario(nome, senha, email, cpf, endereco, telefone) {
+  async function cadastrarUsuario(nome, senha, email, cpf, endereco, telefone) { 
     setLoadingAuth(true);
 
     try {

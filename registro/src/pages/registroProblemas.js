@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
-import { collection, doc, addDoc, query, where, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, addDoc, query, where, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 import { toast } from 'react-toastify';
@@ -42,6 +42,7 @@ function RegistroProblemas() {
   const [dataOcorrencia, setDataOcorrencia] = useState('');
   const [ocorrenciaEditar, setOcorrenciaEditar] = useState(null); // Ocorrência a ser editada  
   const [ocorrencia, setOcorrencia] = useState({});
+   const [nome, setNome] = useState('');
 
 
 
@@ -116,25 +117,25 @@ function RegistroProblemas() {
         console.error("Usuário não autenticado.");
         return;
       }
-  
+
       const ocorrenciasRef = collection(db, "ocorrencias");
-  
+
       // Consulta para buscar ocorrências do usuário logado
-      const q = query(ocorrenciasRef, where("usuarioId", "==", user.uid)); 
-  
+      const q = query(ocorrenciasRef, where("usuarioId", "==", user.uid));
+
       const querySnapshot = await getDocs(q);
-  
+
       if (querySnapshot.empty) {
         console.log("Nenhuma ocorrência encontrada.");
         setOcorrencias([]); // Atualiza para estado vazio se não encontrar ocorrências
         return;
       }
-  
+
       const ocorrenciasList = [];
       querySnapshot.forEach((doc) => {
         ocorrenciasList.push({ id: doc.id, ...doc.data() });
       });
-  
+
       // Atualiza o estado com as ocorrências filtradas
       setOcorrencias(ocorrenciasList);
     } catch (error) {
@@ -142,7 +143,7 @@ function RegistroProblemas() {
       toast.error("Erro ao carregar as ocorrências.");
     }
   };
-  
+
   useEffect(() => {
     if (user?.uid) {
       fetchOcorrencias(); // Chama a função para carregar as ocorrências do usuário logado
@@ -164,7 +165,7 @@ function RegistroProblemas() {
           // Carregar do Firebase se não houver dados no localStorage
           const querySnapshot = await getDocs(collection(db, 'problemas'));
           const ocorrenciasFirebase = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
+            id: doc.id,         
             ...doc.data(),
           }));
           setOcorrencias(ocorrenciasFirebase);
@@ -191,45 +192,40 @@ function RegistroProblemas() {
   }
 
 
+  
 
   const handleAdicionarOcorrencia = async () => {
-    const dataAtual = new Date(); // Pega a data e hora atual
-    const dataFormatada = dataAtual.toLocaleString(); // Formata a data para exibir em formato legível
+    const dataAtual = new Date();
+    const dataFormatada = dataAtual.toLocaleString();
+
+
+
+    // Verifica se a descrição da nova ocorrência não está vazia  ou fixada 
     if (novaOcorrencia.trim()) {
       const nova = {
         usuarioId: user.uid,
+        nomeUsuario: user.nome,           
         descricao: novaOcorrencia,
-        observacoes, // Adiciona as observações aqui
+        observacoes,
         status: '',
-        data: new Date(),
-        data: dataFormatada, // Adiciona a data à nova ocorrência
-
-        media: [], // Aqui, será adicionada a URL do arquivo.
+        data: dataFormatada,
+        media: [],
       };
 
-      console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
-
       try {
-        // Adicionar no Firestore
         const docRef = await addDoc(collection(db, "ocorrencias"), nova);
-        console.log("Ocorrência registrada com ID:", docRef.id);
 
-        // Verificar se há um arquivo selecionado
         if (selectedFile) {
           const fileRef = ref(storage, `ocorrencias/${docRef.id}/${selectedFile.name}`);
           await uploadBytes(fileRef, selectedFile);
           const fileURL = await getDownloadURL(fileRef);
-
-          // Atualizar a ocorrência com a URL do arquivo
-          await updateDoc(docRef, { media: [fileURL] });
-          console.log("Arquivo enviado e URL registrada no Firestore.");
+          await updateDoc(doc(db, "ocorrencias", docRef.id), { media: [fileURL] });
         }
 
-        // Adicionar no estado para atualizar a UI
         setOcorrencias((prev) => [...prev, { id: docRef.id, ...nova }]);
-        setNovaOcorrencia(''); // Limpar o campo de entrada
-        setObservacoes(''); // Limpar o campo de observações
-        setSelectedFile(null); // Limpar o arquivo selecionado
+        setNovaOcorrencia('');
+        setObservacoes('');
+        setSelectedFile(null);
         setSnackbarMessage('Ocorrência adicionada com sucesso!');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
@@ -247,6 +243,7 @@ function RegistroProblemas() {
   };
 
 
+
   const handleEditarOcorrencia = async (id) => {
     const ocorrenciaRef = doc(db, "ocorrencias", id); // Referência para a ocorrência que será editada
 
@@ -256,12 +253,13 @@ function RegistroProblemas() {
         descricao: novaOcorrencia, // Atualiza a descrição
         observacoes: observacoes,  // Atualiza as observações
         status: o.status,          // Atualiza o status
+        nomeUsuario: user.nome,
         // Outros campos que você queira atualizar
       });
 
       setOcorrencias((prev) =>
         prev.map((o) =>
-          o.id === id ? { ...o, descricao: novaOcorrencia, observacoes } : o
+          o.id === id ? { ...o, descricao: novaOcorrencia, observacoes, nomeUsuario: user.nome } : o
         )
       );
 
@@ -300,11 +298,13 @@ function RegistroProblemas() {
         await updateDoc(novaOcorrenciaRef, {
           descricao: novaOcorrencia,
           observacoes: observacoes,
+          nomeUsuario: user.nome,
+
         });
 
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
-            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes };
+            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes, nomeUsuario: user.nome, };
           }
           return ocorrencia;
         });
@@ -319,12 +319,6 @@ function RegistroProblemas() {
       }
     }
   };
-
-
-
-
-
-
 
 
 
@@ -368,10 +362,11 @@ function RegistroProblemas() {
       const registros = ocorrenciasSelecionadas.map((o) =>
         addDoc(collection(db, "problemas"), {
           usuarioId: user.uid,
-          nomeUsuario: user.nome,
+          
+              
+          data: new Date().toISOString(),
           descricao: o.descricao,
           localizacao: localizacao || "Não especificada",
-          data: new Date().toISOString(),
           melhoria,
           imagens: imagens,
           status: "Pendente",
@@ -568,6 +563,7 @@ function RegistroProblemas() {
                   <Typography variant="body2">
                     <strong>Data da Ocorrência:</strong> {o.data}
                   </Typography>
+
                   <Typography
                     variant="body2"
                     sx={{

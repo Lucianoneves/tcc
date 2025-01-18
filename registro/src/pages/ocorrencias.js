@@ -26,7 +26,7 @@ const StatusSpan = styled('span')(({ status }) => ({
 const Ocorrencias = () => {
     const navigate = useNavigate();
     const [ocorrencias, setOcorrencias] = useState([]);
-    const [novaOcorrencia, setNovaOcorrencia] = useState('');
+    const [ocorrenciaExecutada, setOcorrenciaExecutada] = useState('');
     const [descricaoEditada, setdescricaoEditada] = useState('');
     const [statusEditado, setStatusEditado] = useState('');
     const [editandoOcorrencia, setEditandoOcorrencia] = useState(null);
@@ -40,41 +40,77 @@ const Ocorrencias = () => {
     const [observacoes, setObservacoes] = useState('');
     const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);  // Estado para verificar se o usuário é admin
-
+    const [usuarios, setUsuarios] = useState();
+    const [userNome, setUserNome] = useState('');  // Novo estado para armazenar o nome do usuário
+        
 
 
     useEffect(() => {
         const usuarioAdmin = localStorage.getItem('isAdmin');
+        const user = getAuth().currentUser; // Obtenha o usuário atual
         if (usuarioAdmin !== 'true' && user) {
             setIsAdmin(true); 
             navigate('/login');  // Redirecionar para login se não for admin
         }
     }, [navigate]);
-
+    
+    useEffect(() => {
+        const user = getAuth().currentUser; // Obtém o usuário atual
+        if (!user) return; // Se o usuário não estiver logado, não faz nada
+    
+        const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
+            const ocorrenciasAtualizadas = snapshot.docs.map((doc) => {
+                const ocorrenciaData = doc.data();
+                
+                
+                return {
+                    id: doc.id, // Inclui o ID do documento
+                    ...ocorrenciaData,
+                    nomeUsuario:
+                      ocorrenciaData.usuarioId === user.uid
+                        ? user.displayName || "Usuário sem nome"
+                        : "Usuário desconhecido", // Nome do usuário ou um padrão
+                  };
+                });
+                setOcorrencias(ocorrenciasAtualizadas); // Atualiza o estado
+              }
+            );
+        
+            return () => unsubscribe(); // Limpa o listener ao desmontar o componente
+        },[]);
+    
     useEffect(() => {
         const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
-        if (ocorrenciasSalvas) {
-            setOcorrencias(JSON.parse(ocorrenciasSalvas));
-        } else {
-            const ocorrenciasPadrao = [
-                { id: 1, descricao: 'Buraco na rua', status: 'Pendente' },
-                { id: 2, descricao: 'Lâmpada queimada', status: 'Pendente' },
-            ];
-            setOcorrencias(ocorrenciasPadrao);
-            localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasPadrao));
-        }
-    }, []);
+        if (ocorrenciasSalvas && Array.isArray(usuarios) && usuarios.length > 0) {
+            const ocorrencias = JSON.parse(ocorrenciasSalvas);
+            
+            const ocorrenciasComUsuarios = ocorrencias.map((ocorrencia) => {
+                const usuarioEncontrado = usuarios.find((u) => u.id === ocorrencia.usuarioId);
+                return {
+                    ...ocorrencia,                    
+                    nomeUsuario: ocorrencia.nomeUsuario || "Usuário desconhecido",
 
+                };
+            });
+    
+            setOcorrencias(ocorrenciasComUsuarios);
+        }
+    }, [usuarios]); // Execute sempre que `usuarios` for atualizado
+    
     useEffect(() => {
         if (ocorrencias.length > 0) {
             localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
         }
-    }, [ocorrencias]);
+    }, [ocorrencias]); // Salvar as ocorrências no localStorage sempre que o estado mudar
+    
+    useEffect(() => {
+        console.log("Usuários disponíveis:", usuarios);
+        console.log("Ocorrências no localStorage:", localStorage.getItem('ocorrencias'));
+    }, [usuarios, ocorrencias]); // Logs para depuração
+    
 
-
-
-
-
+      
+    
     const handleSalvarEdicao = async (id) => {
         if (descricaoEditada.trim() && statusEditado) {
             try {
@@ -116,19 +152,19 @@ const Ocorrencias = () => {
 
 
 
-    const handleAdicionarOcorrencia = async () => {
-        if (novaOcorrencia.trim()) {
+    const handleExecucao = async () => {
+        if (ocorrenciaExecutada.trim()) {
             const usuarioId = user.uid; // Supondo que 'user' já seja o objeto do usuário autenticado
             const nomeUsuario = user.nome; // Supondo que 'user' tenha o nome
             const localizacao = 'Rua XYZ, Bairro ABC'; // Exemplo de localizacao, você pode obter isso de um input ou estado
             const imagens = []; // Inicialmente vazio, você pode adicionar URLs das imagens carregadas aqui
 
             const nova = {
-                descricao: novaOcorrencia,
+                descricao: ocorrenciaExecutada,
                 status: '',
                 data: new Date(),
                 usuarioId,  // Adicionando o ID do usuário
-                nomeUsuario, // Adicionando o nome do usuário
+                nomeUsuario: user.nome, // Adicionando o nome do usuário
                 localizacao, // Adicionando a localização
                 imagens,     // Adicionando imagens (a lista de URLs das imagens)
                 observacoes
@@ -157,7 +193,7 @@ const Ocorrencias = () => {
                     ...prev,
                     { id: docRef.id, ...nova },
                 ]);
-                setNovaOcorrencia('');  // Limpar o campo de entrada
+                setOcorrenciaExecutada('');  // Limpar o campo de entrada
                 setSelectedFile(null); // Limpar o arquivo selecionado
                 setSnackbarMessage('Ocorrência adicionada com sucesso!');
                 setSnackbarSeverity('success');
@@ -317,8 +353,6 @@ const Ocorrencias = () => {
 
 
 
-
-
     return (
         <Container>
             <Typography variant="h4" gutterBottom>Ocorrências</Typography>
@@ -328,6 +362,7 @@ const Ocorrencias = () => {
             <Button onClick={handleSair} variant="outlined" color="secondary">
                 Sair
             </Button>
+  
             <List>
     {ocorrencias.map((ocorrencia) => (
         <ListItem key={ocorrencia.id}>
@@ -366,9 +401,10 @@ const Ocorrencias = () => {
                     <ListItemText
                         primary={ocorrencia.descricao}
                         secondary={
-                            <Typography component="div">
+                            <>
                                 <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
-                            </Typography>
+                                <Typography variant="body2">Enviado por: { ocorrencia.nomeUsuario}</Typography>
+                            </>
                         }
                     />
                     <Button onClick={() => {
@@ -384,6 +420,7 @@ const Ocorrencias = () => {
         </ListItem>
     ))}
 </List>
+
 
 
 
@@ -410,16 +447,16 @@ const Ocorrencias = () => {
 
 
             <TextField
-                value={novaOcorrencia}
-                onChange={(e) => setNovaOcorrencia(e.target.value)}
+                value={ocorrenciaExecutada}
+                onChange={(e) => setOcorrenciaExecutada(e.target.value)}
                 fullWidth
-                label="Descrição da nova ocorrência"
+                label="Execução da ocorrência"
             />
             <input
                 type="file"
                 onChange={(e) => setSelectedFile(e.target.files[0])}
             />
-            <Button onClick={handleAdicionarOcorrencia} variant="contained" color="primary">
+            <Button onClick={handleExecucao} variant="contained" color="primary">
                 Adicionar Ocorrência
             </Button>
             <Button onClick={handleSubmit} variant="contained" color="primary">
