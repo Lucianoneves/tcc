@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {    Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem}
- from '@mui/material';
+import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem }
+    from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
 import { db, storage } from "../services/firebaseConnection";  // Importando storage
@@ -19,8 +19,8 @@ const StatusSpan = styled('span')(({ status }) => ({
     color: '#fff',
     backgroundColor:
         status === 'Em andamento' ? '#FFA500' :
-        status === 'Pendente' ? '#f44336' :
-        status === 'Concluído' ? '#4caf50' : '#9e9e9e'
+            status === 'Pendente' ? '#f44336' :
+                status === 'Concluído' ? '#4caf50' : '#9e9e9e'
 }));
 
 const Ocorrencias = () => {
@@ -42,75 +42,76 @@ const Ocorrencias = () => {
     const [isAdmin, setIsAdmin] = useState(false);  // Estado para verificar se o usuário é admin
     const [usuarios, setUsuarios] = useState();
     const [userNome, setUserNome] = useState('');  // Novo estado para armazenar o nome do usuário
-        
+
 
 
     useEffect(() => {
         const usuarioAdmin = localStorage.getItem('isAdmin');
         const user = getAuth().currentUser; // Obtenha o usuário atual
         if (usuarioAdmin !== 'true' && user) {
-            setIsAdmin(true); 
+            setIsAdmin(true);
             navigate('/login');  // Redirecionar para login se não for admin
         }
     }, [navigate]);
-    
+
     useEffect(() => {
         const user = getAuth().currentUser; // Obtém o usuário atual
         if (!user) return; // Se o usuário não estiver logado, não faz nada
-    
+
         const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
             const ocorrenciasAtualizadas = snapshot.docs.map((doc) => {
                 const ocorrenciaData = doc.data();
-                
-                
+
+
                 return {
                     id: doc.id, // Inclui o ID do documento
                     ...ocorrenciaData,
                     nomeUsuario:
-                      ocorrenciaData.usuarioId === user.uid
-                        ? user.displayName || "Usuário sem nome"
-                        : "Usuário desconhecido", // Nome do usuário ou um padrão
-                  };
-                });
-                setOcorrencias(ocorrenciasAtualizadas); // Atualiza o estado
-              }
-            );
-        
-            return () => unsubscribe(); // Limpa o listener ao desmontar o componente
-        },[]);
-    
+                        ocorrenciaData.usuarioId === user.uid
+                            ? user.displayName || "Usuário sem nome"
+                            : "Usuário desconhecido", // Nome do usuário ou um padrão
+                };
+            });
+            setOcorrencias(ocorrenciasAtualizadas); // Atualiza o estado
+        }
+        );
+
+        return () => unsubscribe(); // Limpa o listener ao desmontar o componente
+    }, []);
+
     useEffect(() => {
         const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
         if (ocorrenciasSalvas && Array.isArray(usuarios) && usuarios.length > 0) {
             const ocorrencias = JSON.parse(ocorrenciasSalvas);
-            
+
             const ocorrenciasComUsuarios = ocorrencias.map((ocorrencia) => {
                 const usuarioEncontrado = usuarios.find((u) => u.id === ocorrencia.usuarioId);
                 return {
-                    ...ocorrencia,                    
+                    ...ocorrencia,
                     nomeUsuario: ocorrencia.nomeUsuario || "Usuário desconhecido",
+                    data: new Date().toISOString(),
 
                 };
             });
-    
+
             setOcorrencias(ocorrenciasComUsuarios);
         }
     }, [usuarios]); // Execute sempre que `usuarios` for atualizado
-    
+
     useEffect(() => {
         if (ocorrencias.length > 0) {
             localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
         }
     }, [ocorrencias]); // Salvar as ocorrências no localStorage sempre que o estado mudar
-    
+
     useEffect(() => {
         console.log("Usuários disponíveis:", usuarios);
         console.log("Ocorrências no localStorage:", localStorage.getItem('ocorrencias'));
     }, [usuarios, ocorrencias]); // Logs para depuração
-    
 
-      
-    
+
+
+
     const handleSalvarEdicao = async (id) => {
         if (descricaoEditada.trim() && statusEditado) {
             try {
@@ -263,9 +264,15 @@ const Ocorrencias = () => {
 
 
     const handleSubmit = () => {
-        console.log('Ocorrências enviadas:', ocorrencias.filter((ocorrencia) =>
+        // Incluir a data na ocorrência ao enviar
+        const ocorrenciasComData = ocorrencias.filter((ocorrencia) =>
             selecionadas.includes(ocorrencia.id)
-        ));
+        ).map((ocorrencia) => ({
+            ...ocorrencia,
+            data: ocorrencia // Adicionando a data da ocorrência
+        }));
+
+        console.log('Ocorrências enviadas:', ocorrenciasComData);
         setSnackbarMessage('Ocorrências enviadas com sucesso!');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
@@ -362,64 +369,69 @@ const Ocorrencias = () => {
             <Button onClick={handleSair} variant="outlined" color="secondary">
                 Sair
             </Button>
-  
+
             <List>
-    {ocorrencias.map((ocorrencia) => (
-        <ListItem key={ocorrencia.id}>
-            <Checkbox
-                checked={selecionadas.includes(ocorrencia.id)}
-                onChange={() => handleCheckboxChange(ocorrencia.id)}
-            />
-            {editandoOcorrencia === ocorrencia.id ? (
-                <>
-                    <TextField
-                        value={descricaoEditada}
-                        onChange={(e) => setdescricaoEditada(e.target.value)}
-                        fullWidth
-                        label="Descrição"
-                    />
-                    <TextField
-                        value={statusEditado}
-                        onChange={(e) => setStatusEditado(e.target.value)}
-                        fullWidth
-                        label="Status"
-                        select
-                    >
-                        <MenuItem value="Pendente">Pendente</MenuItem>
-                        <MenuItem value="Em Andamento">Em Andamento</MenuItem>
-                        <MenuItem value="Concluído">Concluído</MenuItem>
-                    </TextField>
-                    <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
-                        Salvar
-                    </Button>
-                    <Button onClick={() => setEditandoOcorrencia(null)} variant="outlined" color="secondary">
-                        Cancelar
-                    </Button>
-                </>
-            ) : (
-                <>
-                    <ListItemText
-                        primary={ocorrencia.descricao}
-                        secondary={
+                {ocorrencias.map((ocorrencia) => (
+                    <ListItem key={ocorrencia.id}>
+                        <Checkbox
+                            checked={selecionadas.includes(ocorrencia.id)}
+                            onChange={() => handleCheckboxChange(ocorrencia.id)}
+                        />
+                        {editandoOcorrencia === ocorrencia.id ? (
                             <>
-                                <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
-                                <Typography variant="body2">Enviado por: { ocorrencia.nomeUsuario}</Typography>
+                                <TextField
+                                    value={descricaoEditada}
+                                    onChange={(e) => setdescricaoEditada(e.target.value)}
+                                    fullWidth
+                                    label="Descrição"
+                                />
+                                <TextField
+                                    value={statusEditado}
+                                    onChange={(e) => setStatusEditado(e.target.value)}
+                                    fullWidth
+                                    label="Status"
+                                    select
+                                >
+                                    <MenuItem value="Pendente">Pendente</MenuItem>
+                                    <MenuItem value="Em Andamento">Em Andamento</MenuItem>
+                                    <MenuItem value="Concluído">Concluído</MenuItem>
+                                </TextField>
+                                <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
+                                    Salvar
+                                </Button>
+                                <Button onClick={() => setEditandoOcorrencia(null)} variant="outlined" color="secondary">
+                                    Cancelar
+                                </Button>
                             </>
-                        }
-                    />
-                    <Button onClick={() => {
-                        setdescricaoEditada(ocorrencia.descricao);
-                        setStatusEditado(ocorrencia.status);
-                        setEditandoOcorrencia(ocorrencia.id);
-                    }}>Editar</Button>
-                    <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
-                        Remover
-                    </Button>
-                </>
-            )}
-        </ListItem>
-    ))}
-</List>
+                        ) : (
+                            <>
+                                <ListItemText
+                                    primary={ocorrencia.descricao}
+                                    secondary={
+                                        <>
+                                            <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
+                                            <Typography variant="body2">Enviado por:  {ocorrencia.nomeUsuario}</Typography>
+                                            <Typography variant="body2">
+                                                <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
+                                            </Typography>
+
+
+                                        </>
+                                    }
+                                />
+                                <Button onClick={() => {
+                                    setdescricaoEditada(ocorrencia.descricao);
+                                    setStatusEditado(ocorrencia.status);
+                                    setEditandoOcorrencia(ocorrencia.id);
+                                }}>Editar</Button>
+                                <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
+                                    Remover
+                                </Button>
+                            </>
+                        )}
+                    </ListItem>
+                ))}
+            </List>
 
 
 
