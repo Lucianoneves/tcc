@@ -20,6 +20,7 @@ function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
+   const [endereco, setEndereco] = useState('');
 
   const navigate = useNavigate();
 
@@ -139,6 +140,7 @@ function AuthProvider({ children }) {
       data: new Date(),
       usuarioId: user.uid,
       nomeUsuario: user.nome,
+      endereco: endereco,
       
       
      
@@ -230,11 +232,6 @@ async function excluirPerfil() {
     toast.error("Erro ao excluir perfil. Tente novamente.");
   }
 }
-
-  
-
-
-
 
 
   return (

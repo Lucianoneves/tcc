@@ -42,7 +42,11 @@ function RegistroProblemas() {
   const [dataOcorrencia, setDataOcorrencia] = useState('');
   const [ocorrenciaEditar, setOcorrenciaEditar] = useState(null); // Ocorrência a ser editada  
   const [ocorrencia, setOcorrencia] = useState({});
-   const [nome, setNome] = useState('');
+  const [nome, setNome] = useState('');
+  const [endereco, setEndereco] = useState('');
+  const [erro, setErro] = useState('');
+
+
 
 
 
@@ -165,7 +169,7 @@ function RegistroProblemas() {
           // Carregar do Firebase se não houver dados no localStorage
           const querySnapshot = await getDocs(collection(db, 'problemas'));
           const ocorrenciasFirebase = querySnapshot.docs.map((doc) => ({
-            id: doc.id,         
+            id: doc.id,
             ...doc.data(),
           }));
           setOcorrencias(ocorrenciasFirebase);
@@ -192,7 +196,7 @@ function RegistroProblemas() {
   }
 
 
-  
+
 
   const handleAdicionarOcorrencia = async () => {
     const dataAtual = new Date();
@@ -204,8 +208,9 @@ function RegistroProblemas() {
     if (novaOcorrencia.trim()) {
       const nova = {
         usuarioId: user.uid,
-        nomeUsuario: user.nome,           
+        nomeUsuario: user.nome,
         descricao: novaOcorrencia,
+        endereco: endereco,
         observacoes,
         status: '',
         data: dataFormatada,
@@ -254,6 +259,8 @@ function RegistroProblemas() {
         observacoes: observacoes,  // Atualiza as observações
         status: o.status,          // Atualiza o status
         nomeUsuario: user.nome,
+        endereco:endereco,
+   
         // Outros campos que você queira atualizar
       });
 
@@ -299,12 +306,13 @@ function RegistroProblemas() {
           descricao: novaOcorrencia,
           observacoes: observacoes,
           nomeUsuario: user.nome,
+          endereco: endereco,
 
         });
 
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
-            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes, nomeUsuario: user.nome, };
+            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes, nomeUsuario: user.nome, endereco:endereco };
           }
           return ocorrencia;
         });
@@ -362,14 +370,15 @@ function RegistroProblemas() {
       const registros = ocorrenciasSelecionadas.map((o) =>
         addDoc(collection(db, "problemas"), {
           usuarioId: user.uid,
-          
-              
+          endereco: endereco,
           data: new Date().toISOString(),
           descricao: o.descricao,
-          localizacao: localizacao || "Não especificada",
+          localizacao: localizacao || '',
           melhoria,
           imagens: imagens,
           status: "Pendente",
+          endereco: endereco,
+        
         })
       );
       await Promise.all(registros);
@@ -408,13 +417,18 @@ function RegistroProblemas() {
 
 
   const obterLocalizacao = () => {
+    console.log('Botão clicado - Função chamada!');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          obterEndereco(latitude, longitude);
+          console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+          setLocalizacao(`Latitude: ${latitude}, Longitude: ${longitude}`);
+          setErroLocalizacao('');
+          obterEndereco(latitude, longitude); // Obtém o endereço com base nas coordenadas
         },
         (error) => {
+          console.error('Erro ao obter localização:', error);
           const mensagensErro = {
             1: 'Usuário negou a solicitação de Geolocalização.',
             2: 'Informação de localização não está disponível.',
@@ -427,30 +441,38 @@ function RegistroProblemas() {
       setErroLocalizacao('Geolocalização não é suportada pelo navegador.');
     }
   };
-
+  
   const obterEndereco = (latitude, longitude) => {
-    fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.status === 'OK') {
-          setLocalizacao(data.results[0].formatted_address || 'Endereço não encontrado');
-        } else {
-          setErroLocalizacao('Não foi possível obter o endereço.');
-        }
-      })
-      .catch(() => setErroLocalizacao('Erro ao obter o endereço.'));
-  };
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
 
+fetch(url)
+  .then((response) => response.json())
+  .then((data) => {
+    if (data.address) {
+      const { road, neighbourhood, city, postcode } = data.address;
+      const enderecoFormatado = `${road || ''}, ${neighbourhood || ''}, ${city || ''}, ${postcode || ''}`;
+      setEndereco(enderecoFormatado.trim().replace(/,\s*,/g, ',')); // Remove vírgulas extras
+    } else {
+      setErro('Endereço não encontrado.');
+    }
+  })
+  .catch(() => setErro('Erro ao buscar o endereço.'));
+};
+  
+  // Busca manual
   const buscarEnderecoManual = () => {
     if (!enderecoManual.trim()) {
       setErroLocalizacao('Digite um endereço válido.');
       return;
     }
-
-    fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(enderecoManual)}&key=${apiKey}`)
+  
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(enderecoManual)}&key=${apiKey}`;
+    console.log('URL da API Geocoding (manual):', url);
+  
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
-        if (data.status === 'OK') {
+        if (data.status === 'OK' && data.results.length > 0) {
           const resultado = data.results[0];
           setResultadoEndereco(
             `Endereço: ${resultado.formatted_address}, Coordenadas: ${resultado.geometry.location.lat}, ${resultado.geometry.location.lng}`
@@ -461,6 +483,7 @@ function RegistroProblemas() {
       })
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
+  
 
   const handleSubmitNovaOcorrencia = async () => {
     if (!selecionadas.length) {
@@ -489,7 +512,8 @@ function RegistroProblemas() {
           usuarioId: user.uid,
           nomeUsuario: user.nome,
           descricao: o.descricao,
-          localizacao: localizacao || "Não especificada",
+          localizacao: localizacao || "Não especificada",          
+          endereco: endereco,
           data: new Date().toISOString(),
           melhoria,
           imagens: imagens,
@@ -562,6 +586,9 @@ function RegistroProblemas() {
                   </Typography>
                   <Typography variant="body2">
                     <strong>Data da Ocorrência:</strong> {o.data}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Endereço:</strong> {endereco}
                   </Typography>
 
                   <Typography
