@@ -22,7 +22,8 @@ function RegistroProblemas() {
   const [selecionadas, setSelecionadas] = useState([]);
   const [localizacao, setLocalizacao] = useState('');
   const [erroLocalizacao, setErroLocalizacao] = useState(null);
-  const [enderecoManual, setEnderecoManual] = useState('');
+  const [enderecoEditavel, setEnderecoEditavel] = useState('');
+  const [endereco, setEndereco] = useState('');
   const [resultadoEndereco, setResultadoEndereco] = useState('');
   const [melhoria, setMelhoria] = useState('');
   const [imagens, setImagens] = useState([]);
@@ -43,7 +44,6 @@ function RegistroProblemas() {
   const [ocorrenciaEditar, setOcorrenciaEditar] = useState(null); // Ocorrência a ser editada  
   const [ocorrencia, setOcorrencia] = useState({});
   const [nome, setNome] = useState('');
-  const [endereco, setEndereco] = useState('');
   const [erro, setErro] = useState('');
 
 
@@ -261,6 +261,7 @@ function RegistroProblemas() {
         nomeUsuario: user.nome,
         endereco:endereco,
    
+   
         // Outros campos que você queira atualizar
       });
 
@@ -293,11 +294,6 @@ function RegistroProblemas() {
 
 
 
-
-
-
-
-
   const handleSalvarEdicao = async () => {
     if (ocorrenciaEditar) {
       try {
@@ -307,6 +303,8 @@ function RegistroProblemas() {
           observacoes: observacoes,
           nomeUsuario: user.nome,
           endereco: endereco,
+          enderecoEditavel:enderecoEditavel
+          
 
         });
 
@@ -378,6 +376,8 @@ function RegistroProblemas() {
           imagens: imagens,
           status: "Pendente",
           endereco: endereco,
+           endereco: enderecoEditavel,
+         
         
         })
       );
@@ -444,45 +444,41 @@ function RegistroProblemas() {
   
   const obterEndereco = (latitude, longitude) => {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
-
-fetch(url)
-  .then((response) => response.json())
-  .then((data) => {
-    if (data.address) {
-      const { road, neighbourhood, city, postcode } = data.address;
-      const enderecoFormatado = `${road || ''}, ${neighbourhood || ''}, ${city || ''}, ${postcode || ''}`;
-      setEndereco(enderecoFormatado.trim().replace(/,\s*,/g, ',')); // Remove vírgulas extras
-    } else {
-      setErro('Endereço não encontrado.');
-    }
-  })
-  .catch(() => setErro('Erro ao buscar o endereço.'));
-};
-  
-  // Busca manual
-  const buscarEnderecoManual = () => {
-    if (!enderecoManual.trim()) {
-      setErroLocalizacao('Digite um endereço válido.');
-      return;
-    }
-  
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(enderecoManual)}&key=${apiKey}`;
-    console.log('URL da API Geocoding (manual):', url);
   
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
-        if (data.status === 'OK' && data.results.length > 0) {
-          const resultado = data.results[0];
-          setResultadoEndereco(
-            `Endereço: ${resultado.formatted_address}, Coordenadas: ${resultado.geometry.location.lat}, ${resultado.geometry.location.lng}`
-          );
+        if (data.address) {
+          const { road, neighbourhood, city, postcode } = data.address;
+          const enderecoFormatado = `${road || ''}, ${neighbourhood || ''}, ${city || ''}, ${postcode || ''}`;
+          const enderecoLimpo = enderecoFormatado.trim().replace(/,\s*,/g, ','); // Remove vírgulas extras
+          setEndereco(enderecoLimpo);
+          localStorage.setItem('endereco', enderecoLimpo); // Salva no localStorage
         } else {
-          setErroLocalizacao('Endereço não encontrado.');
+          setErroLocalizacao('Não foi possível obter o endereço.');
         }
       })
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
+  
+  // No início do componente, recuperar os dados salvos no localStorage
+  useEffect(() => {
+    const enderecoSalvo = localStorage.getItem('endereco');
+    if (enderecoSalvo) {
+      setEndereco(enderecoSalvo); // Recupera o endereço salvo
+    }
+  }, []);
+
+  const handleEnderecoEdit = (e) => {
+    setEnderecoEditavel(e.target.value);
+  };
+
+  const salvarEnderecoEditado = () => {
+    setEndereco(enderecoEditavel); // Atualiza o estado principal com o valor editado
+    localStorage.setItem('endereco', enderecoEditavel); // Salva no localStorage
+  };
+ 
+
   
 
   const handleSubmitNovaOcorrencia = async () => {
@@ -513,11 +509,12 @@ fetch(url)
           nomeUsuario: user.nome,
           descricao: o.descricao,
           localizacao: localizacao || "Não especificada",          
-          endereco: endereco,
+          endereco: endereco,       
           data: new Date().toISOString(),
           melhoria,
           imagens: imagens,
           status: "Pendente",  // Adicionando o status com valor inicial
+          enderecoEditavel: enderecoEditavel,
         })
       );
 
@@ -590,6 +587,7 @@ fetch(url)
                   <Typography variant="body2">
                     <strong>Endereço:</strong> {endereco}
                   </Typography>
+                 
 
                   <Typography
                     variant="body2"
@@ -657,27 +655,27 @@ fetch(url)
         />
       </Box>
 
-      <Box mt={4}>
-        <Typography variant="h6">Localização Atual</Typography>
-        <TextField
-          value={localizacao}
-          disabled
-          fullWidth
-          variant="outlined"
-          label="Localização Atual"
-          margin="normal"
+      <div>
+      <h1>Localização</h1>
+      <button onClick={obterLocalizacao}>Obter Localização</button>
+      {erroLocalizacao && <p style={{ color: 'red' }}>{erroLocalizacao}</p>}
+
+      <div>
+        <h2>Endereço</h2>
+        <input
+          type="text"
+          value={enderecoEditavel}
+          onChange={handleEnderecoEdit}
+          placeholder="Digite o endereço manualmente"
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
-          <Button variant="outlined" color="primary" onClick={obterLocalizacao}>
-            Obter Localização Atual
-          </Button>
-        </Box>
-        {erroLocalizacao && (
-          <Typography color="error" variant="body2" sx={{ mt: 2 }}>
-            {erroLocalizacao}
-          </Typography>
-        )}
-      </Box>
+        <button onClick={salvarEnderecoEditado}>Salvar Endereço</button>
+      </div>
+
+      <p><strong>Endereço Atual:</strong> {endereco}</p>
+    
+    </div>
+  
+  
 
       <Box mt={4}>
         <Typography variant="h6">Adicionar Imagens</Typography>

@@ -21,6 +21,7 @@ function AuthProvider({ children }) {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
    const [endereco, setEndereco] = useState('');
+   const [enderecoEditavel, setEnderecoEditavel] = useState('');
 
   const navigate = useNavigate();
 
@@ -141,6 +142,7 @@ function AuthProvider({ children }) {
       usuarioId: user.uid,
       nomeUsuario: user.nome,
       endereco: endereco,
+      enderecoEditavel:enderecoEditavel,
       
       
      
