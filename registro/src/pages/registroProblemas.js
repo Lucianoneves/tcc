@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
-import { collection, doc, getDoc, addDoc, query, where, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, addDoc, query, where, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 import { toast } from 'react-toastify';
@@ -201,6 +201,25 @@ function RegistroProblemas() {
   const handleAdicionarOcorrencia = async () => {
     const dataAtual = new Date();
     const dataFormatada = dataAtual.toLocaleString();
+     // Armazena o endereço antes de limpar o estado
+     const enderecoAtual = enderecoEditavel.trim();
+
+
+    setEndereco(""); 
+    setEnderecoEditavel(""); // Limpa o campo editável também
+
+
+    const novaOcorrencia = {
+      usuarioId: user.uid,
+      nomeUsuario: user.nome,
+      descricao: descricao,
+      endereco: enderecoAtual,  // Usa o endereço atualizado corretamente
+      observacoes,
+      status: '',
+      data: dataFormatada,
+      media: [],
+    };
+
 
 
 
@@ -210,12 +229,21 @@ function RegistroProblemas() {
         usuarioId: user.uid,
         nomeUsuario: user.nome,
         descricao: novaOcorrencia,
-        endereco: endereco,
+        endereco: enderecoAtual,       
         observacoes,
         status: '',
         data: dataFormatada,
         media: [],
       };
+
+      // Função para editar o endereço de uma ocorrência específica
+const editarEnderecoOcorrencia = (id, novoEndereco) => {
+  setOcorrencias((prevOcorrencias) =>
+    prevOcorrencias.map((ocorrencia) =>
+      ocorrencia.id === id ? { ...ocorrencia, endereco: novoEndereco } : ocorrencia
+    )
+  );
+};
 
       try {
         const docRef = await addDoc(collection(db, "ocorrencias"), nova);
@@ -259,9 +287,9 @@ function RegistroProblemas() {
         observacoes: observacoes,  // Atualiza as observações
         status: o.status,          // Atualiza o status
         nomeUsuario: user.nome,
-        endereco:endereco,
-   
-   
+        endereco: endereco,
+
+
         // Outros campos que você queira atualizar
       });
 
@@ -303,14 +331,13 @@ function RegistroProblemas() {
           observacoes: observacoes,
           nomeUsuario: user.nome,
           endereco: endereco,
-          enderecoEditavel:enderecoEditavel
-          
+
 
         });
 
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
-            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes, nomeUsuario: user.nome, endereco:endereco };
+            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes, nomeUsuario: user.nome, endereco: endereco };
           }
           return ocorrencia;
         });
@@ -375,10 +402,10 @@ function RegistroProblemas() {
           melhoria,
           imagens: imagens,
           status: "Pendente",
-          endereco: endereco,
-           endereco: enderecoEditavel,
-         
-        
+
+
+
+
         })
       );
       await Promise.all(registros);
@@ -441,10 +468,10 @@ function RegistroProblemas() {
       setErroLocalizacao('Geolocalização não é suportada pelo navegador.');
     }
   };
-  
+
   const obterEndereco = (latitude, longitude) => {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
-  
+
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
@@ -452,20 +479,25 @@ function RegistroProblemas() {
           const { road, neighbourhood, city, postcode } = data.address;
           const enderecoFormatado = `${road || ''}, ${neighbourhood || ''}, ${city || ''}, ${postcode || ''}`;
           const enderecoLimpo = enderecoFormatado.trim().replace(/,\s*,/g, ','); // Remove vírgulas extras
+
           setEndereco(enderecoLimpo);
+          setEnderecoEditavel(enderecoLimpo); // Atualiza o campo editável
+
           localStorage.setItem('endereco', enderecoLimpo); // Salva no localStorage
+          salvarEnderecoNoFirebase(enderecoLimpo); // Salva no Firebase
         } else {
           setErroLocalizacao('Não foi possível obter o endereço.');
         }
       })
       .catch(() => setErroLocalizacao('Erro ao buscar o endereço.'));
   };
-  
+
   // No início do componente, recuperar os dados salvos no localStorage
   useEffect(() => {
     const enderecoSalvo = localStorage.getItem('endereco');
     if (enderecoSalvo) {
-      setEndereco(enderecoSalvo); // Recupera o endereço salvo
+      setEndereco(enderecoSalvo);
+      setEnderecoEditavel(enderecoSalvo);
     }
   }, []);
 
@@ -474,12 +506,25 @@ function RegistroProblemas() {
   };
 
   const salvarEnderecoEditado = () => {
-    setEndereco(enderecoEditavel); // Atualiza o estado principal com o valor editado
+    setEndereco(enderecoEditavel); // Atualiza o estado principal
     localStorage.setItem('endereco', enderecoEditavel); // Salva no localStorage
+    salvarEnderecoNoFirebase(enderecoEditavel); // Salva no Firebase
   };
- 
 
-  
+  // Função para salvar no Firebase
+  const salvarEnderecoNoFirebase = async (endereco) => {
+    try {
+      const usuarioId = "usuario123"; // Substitua pelo ID real do usuário autenticado
+      await setDoc(doc(db, "enderecos", usuarioId), {
+        endereco: endereco,
+        timestamp: new Date(),
+      });
+      console.log("Endereço salvo no Firebase com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar no Firebase:", error);
+    }
+  };
+
 
   const handleSubmitNovaOcorrencia = async () => {
     if (!selecionadas.length) {
@@ -508,13 +553,13 @@ function RegistroProblemas() {
           usuarioId: user.uid,
           nomeUsuario: user.nome,
           descricao: o.descricao,
-          localizacao: localizacao || "Não especificada",          
-          endereco: endereco,       
+          localizacao: localizacao || "Não especificada",
+          endereco: endereco,
           data: new Date().toISOString(),
           melhoria,
           imagens: imagens,
           status: "Pendente",  // Adicionando o status com valor inicial
-          enderecoEditavel: enderecoEditavel,
+
         })
       );
 
@@ -587,7 +632,7 @@ function RegistroProblemas() {
                   <Typography variant="body2">
                     <strong>Endereço:</strong> {endereco}
                   </Typography>
-                 
+
 
                   <Typography
                     variant="body2"
@@ -656,26 +701,31 @@ function RegistroProblemas() {
       </Box>
 
       <div>
-      <h1>Localização</h1>
-      <button onClick={obterLocalizacao}>Obter Localização</button>
-      {erroLocalizacao && <p style={{ color: 'red' }}>{erroLocalizacao}</p>}
+        <h1>Localização</h1>
+        <button onClick={obterLocalizacao}>Obter Localização</button>
+        {erroLocalizacao && <p style={{ color: 'red' }}>{erroLocalizacao}</p>}
 
-      <div>
-        <h2>Endereço</h2>
-        <input
-          type="text"
-          value={enderecoEditavel}
-          onChange={handleEnderecoEdit}
-          placeholder="Digite o endereço manualmente"
-        />
-        <button onClick={salvarEnderecoEditado}>Salvar Endereço</button>
+        <Typography variant="body2">
+          <strong>Endereço:</strong> {endereco}
+        </Typography>
+
+        <div>
+          <h2>Endereço Editável</h2>
+          <input
+            type="text"
+            value={enderecoEditavel}
+            onChange={handleEnderecoEdit}
+            onBlur={salvarEnderecoEditado} // Salva quando o campo perder o foco
+            placeholder="Digite o endereço manualmente"
+          />
+        </div>
+
+
+
+
       </div>
 
-      <p><strong>Endereço Atual:</strong> {endereco}</p>
-    
-    </div>
-  
-  
+
 
       <Box mt={4}>
         <Typography variant="h6">Adicionar Imagens</Typography>
