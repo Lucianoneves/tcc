@@ -209,17 +209,7 @@ function RegistroProblemas() {
     setEnderecoEditavel(""); // Limpa o campo editável também
 
 
-    const novaOcorrencia = {
-      usuarioId: user.uid,
-      nomeUsuario: user.nome,
-      descricao: descricao,
-      endereco: enderecoAtual,  // Usa o endereço atualizado corretamente
-      observacoes,
-      status: '',
-      data: dataFormatada,
-      media: [],
-    };
-
+  
 
 
 
@@ -279,7 +269,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
 
   const handleEditarOcorrencia = async (id) => {
     const ocorrenciaRef = doc(db, "ocorrencias", id); // Referência para a ocorrência que será editada
-
+  
     // Atualizando os campos da ocorrência
     try {
       await updateDoc(ocorrenciaRef, {
@@ -287,18 +277,16 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
         observacoes: observacoes,  // Atualiza as observações
         status: o.status,          // Atualiza o status
         nomeUsuario: user.nome,
-        endereco: endereco,
-
-
-        // Outros campos que você queira atualizar
+        endereco: endereco, // Atualiza o endereço
       });
-
+  
       setOcorrencias((prev) =>
-        prev.map((o) =>
-          o.id === id ? { ...o, descricao: novaOcorrencia, observacoes, nomeUsuario: user.nome } : o
+        prev.map((ocorrencia) =>
+          ocorrencia.id === id ? { ...ocorrencia, endereco } : ocorrencia
         )
       );
-
+      
+  
       setSnackbarMessage('Ocorrência editada com sucesso!');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
@@ -309,16 +297,20 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
       setSnackbarOpen(true);
     }
   };
+  
+  
 
   const handleEditarClick = (id) => {
     const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
-
+  
     if (ocorrenciaSelecionada) {
-      setOcorrenciaEditar(ocorrenciaSelecionada);  // Preenche o estado com a ocorrência selecionada
-      setNovaOcorrencia(ocorrenciaSelecionada.descricao);  // Preenche o campo de descrição
-      setObservacoes(ocorrenciaSelecionada.observacoes);  // Preenche o campo de observações
+      setOcorrenciaEditar(ocorrenciaSelecionada); // Preenche o estado com a ocorrência selecionada
+      setNovaOcorrencia(ocorrenciaSelecionada.descricao); // Preenche o campo de descrição
+      setObservacoes(ocorrenciaSelecionada.observacoes); // Preenche o campo de observações
+      setEndereco(ocorrenciaSelecionada.endereco); // Preenche o campo de endereço específico
     }
   };
+  
 
 
 
@@ -330,28 +322,33 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
           descricao: novaOcorrencia,
           observacoes: observacoes,
           nomeUsuario: user.nome,
-          endereco: endereco,
-
-
+          endereco: endereco, // Atualiza o endereço específico da ocorrência
         });
-
+  
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
-            return { ...ocorrencia, descricao: novaOcorrencia, observacoes: observacoes, nomeUsuario: user.nome, endereco: endereco };
+            return {
+              ...ocorrencia,
+              descricao: novaOcorrencia,
+              observacoes: observacoes,
+              nomeUsuario: user.nome,
+              endereco: endereco, // Atualiza o endereço da ocorrência
+            };
           }
           return ocorrencia;
         });
-
-        setOcorrencias(novaListaOcorrencias);
+  
+        setOcorrencias(novaListaOcorrencias); // Atualiza a lista de ocorrências
         setNovaOcorrencia("");
         setObservacoes("");
         setOcorrenciaEditar(null);
-
+        setEndereco(""); // Limpa o endereço após salvar
       } catch (error) {
         console.error("Erro ao salvar edição:", error);
       }
     }
   };
+  
 
 
 
@@ -630,7 +627,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
                     <strong>Data da Ocorrência:</strong> {o.data}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Endereço:</strong> {endereco}
+                    <strong>Endereço:</strong> { o.endereco }
                   </Typography>
 
 
