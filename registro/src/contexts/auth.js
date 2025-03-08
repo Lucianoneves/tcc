@@ -1,4 +1,7 @@
 
+//Função de componente é o gerenciamento de usuarios para login,cadastro,redefinição de senha, registro de ocorrencias e exclusão do usuário //
+
+
 import React from 'react';
 import { useState, createContext, useEffect, useContext } from "react";
 import { auth, db } from "../services/firebaseConnection";

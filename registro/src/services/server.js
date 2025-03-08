@@ -1,5 +1,12 @@
+
+ // Esse codigo  implementa um servidor Backend usando  Node.js com o  framework Express.js o codigo tem a função  receber a uma requesição POST com um numero de telefone,
+ // Rota para enviar e redefinir a senha  receber  um email POST. configura o email  de redefinição desenha utilizando o Nodemailer // 
+
+
+
 // server.js
 const express = require('express');
+const multer = require("multer");
 const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -38,6 +45,41 @@ app.post('/enviar-redefinicao-senha', (req, res) => {
     });
 });
 
+
+
+
+// Criar a pasta "uploads" caso não exista
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// Configuração do Multer para salvar imagens localmente
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // Diretório onde as imagens serão salvas
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({ storage });
+
+// Rota para upload de imagem
+app.post("/upload", upload.single("foto"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "Nenhuma imagem enviada" });
+  }
+  const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  res.json({ success: "Imagem enviada com sucesso!", imageUrl });
+});
+
+// Servir imagens da pasta "uploads"
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Iniciar servidor
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });

@@ -13,50 +13,58 @@ function PerfilUsuario() {
   const [nome, setNome] = useState(user?.nome || "");
   const [email, setEmail] = useState(user?.email || "");
   const [telefone, setTelefone] = useState(user?.telefone || "");
-  const [endereco, setEndereco] = useState(user?.endereco || "");
-  const [fotoPerfil, setFotoPerfil] = useState(null);
+  const [endereco, setEndereco] = useState(user?.endereco || ""); 
   const [fotoPreview, setFotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [ocorrencias, setOcorrencias] = useState([]);
 
-  // Carregar dados do usuário ao autenticar
+
+
   useEffect(() => {
     if (user?.uid) {
-      const userDocRef = doc(db, "users", user.uid); 
-      getDoc(userDocRef)
-        .then((docSnap) => {
+      const fetchUserData = async () => {
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(userDocRef);
           if (docSnap.exists()) {
             const userData = docSnap.data();
-            setNome(userData.nome || "");
+            setNome(userData.nome || "");  // Agora carregando o nome corretamente
             setEmail(userData.email || "");
             setTelefone(userData.telefone || "");
             setEndereco(userData.endereco || "");
-            setFotoPerfil(userData.fotoPerfil || "");
-            setFotoPreview(userData.fotoPerfil || null);
           }
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Erro ao carregar dados:", error);
           toast.error("Erro ao carregar os dados do usuário.");
-        });
+        }
+      };
+  
+      fetchUserData();
     }
   }, [user?.uid]);
+  
 
-  // Alteração de foto de perfil
-  const handleFotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
-      setFotoPerfil(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setFotoPreview(reader.result);
-      reader.readAsDataURL(file);
-    } else {
-      alert("Por favor, selecione um arquivo de imagem.");
-    }
-  };
+     // Alteração de foto de perfil
+     const handleFotoChange = (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          localStorage.setItem("fotoPerfil", reader.result);
+          setFotoPreview(reader.result);
+          toast.success("Foto de perfil atualizada!");
+        };
+        reader.readAsDataURL(file);
+      } else {
+        toast.error("Por favor, selecione uma imagem válida.");
+      }
+    };
 
-  // Formatação de telefone
+
+
+
+      // Formatação de telefone
   const handleTelefoneChange = (e) => {
     const value = e.target.value.replace(/\D/g, "");
     const formattedValue = value
@@ -64,6 +72,25 @@ function PerfilUsuario() {
       .replace(/(\d{4,5})(\d{4})$/, "$1-$2");
     setTelefone(formattedValue);
   };
+
+
+
+    // Carregar foto salva no localStorage ao iniciar
+    useEffect(() => {
+      const fotoSalva = localStorage.getItem("fotoPerfil");  // Armazena a URL da imagen   localStorage a imagen e convertida em uma string com a chave fotoPerfil, mas esse 
+      if (fotoSalva) {                                         // metodo  é utilizado para imagens pequenas ou medias  pois tem uma limitação de 5MB por dominio  //
+        setFotoPreview(fotoSalva);
+      }
+    }, []);
+
+  
+
+  
+
+  
+
+
+
 
   // Buscar ocorrências
   const fetchOcorrencias = useCallback(async () => {
@@ -86,6 +113,33 @@ function PerfilUsuario() {
   useEffect(() => {
     fetchOcorrencias();
   }, [user?.uid, fetchOcorrencias]);
+
+
+
+ // Salvar nome, telefone e endereço no Firebase
+ const handleSalvarAlteracoes = async (e) => {
+  e.preventDefault();
+  if (!user?.uid) return;
+
+  setLoading(true);
+  const userDocRef = doc(db, "users", user.uid);
+  const updates = {
+    nome: nome.trim(),
+    telefone: telefone.trim(),
+    endereco: endereco.trim(),
+  };
+
+  try {
+    await updateDoc(userDocRef, updates);
+    toast.success("Dados salvos com sucesso!");
+  } catch (error) {
+    console.error("Erro ao salvar dados:", error);
+    toast.error("Erro ao salvar dados. Tente novamente.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Logout
   const handleLogout = async () => {
@@ -126,41 +180,7 @@ function PerfilUsuario() {
     }
   };
 
-  // Salvar alterações de perfil
-  const handleSalvarAlteracoes = async (e) => {
-    e.preventDefault();
-    if (!user?.uid) return;
-
-    setLoading(true);
-    const userDocRef = doc(db, "users", user.uid);
-    const updates = {};
-
-    try {
-      if (fotoPerfil) {
-        const fotoRef = ref(storage, `profile_pictures/${user.uid}`);
-        await uploadBytes(fotoRef, fotoPerfil);
-        const fotoURL = await getDownloadURL(fotoRef);
-        updates.fotoPerfil = fotoURL;
-        setFotoPreview(fotoURL);
-      }
-
-      if (nome !== user?.nome) updates.nome = nome.trim();
-      if (telefone !== user?.telefone) updates.telefone = telefone.trim();
-      if (endereco !== user?.endereco) updates.endereco = endereco.trim();
-
-      if (Object.keys(updates).length > 0) {
-        await updateDoc(userDocRef, updates);
-        toast.success("Alterações salvas com sucesso!");
-      } else {
-        toast.info("Nenhuma alteração detectada.");
-      }
-    } catch (error) {
-      console.error("Erro ao salvar as alterações:", error);
-      toast.error("Erro ao salvar as alterações. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   return (
     <Container maxWidth="sm">
@@ -181,6 +201,7 @@ function PerfilUsuario() {
           </Box>
         )}
 
+        <TextField fullWidth label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} sx={{ mb: 2 }} />  
         <TextField fullWidth label="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }} />
         <TextField fullWidth label="Telefone" value={telefone} onChange={handleTelefoneChange} sx={{ mb: 2 }} />
         <TextField fullWidth label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} sx={{ mb: 2 }} />

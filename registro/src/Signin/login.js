@@ -1,3 +1,5 @@
+
+
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/login.css";
@@ -41,7 +43,7 @@ function Login() {
     }
   };
 
-  const handleEsqueciSenha = () => {
+  const handleEsqueciSenha = () => {   // Função para redirecionar para a página de redefinição de senha //
     navigate("/redefinir-senha");
   };
 

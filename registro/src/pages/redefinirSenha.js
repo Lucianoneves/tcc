@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Box, Alert, CircularProgress } from '@mui/material';
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
+import { useNavigate } from 'react-router-dom';
 
 function RedefinirSenha() {
     const [email, setEmail] = useState('');
@@ -8,6 +9,7 @@ function RedefinirSenha() {
     const [erro, setErro] = useState('');
     const [carregando, setCarregando] = useState(false);
     const auth = getAuth();
+    const navigate = useNavigate();
 
     const validarEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
@@ -27,6 +29,11 @@ function RedefinirSenha() {
             await sendPasswordResetEmail(auth, email);
             setMensagem('Se o e-mail informado estiver cadastrado, você receberá um link de redefinição.');
             setEmail('');
+
+            // Aguarda um tempo antes de redirecionar
+            setTimeout(() => {
+                navigate('/login');
+            }, 3000); // Redireciona após 3 segundos
         } catch (error) {
             console.error("Erro ao enviar e-mail de redefinição:", error);
             if (error.code === 'auth/user-not-found') {
@@ -77,7 +84,7 @@ function RedefinirSenha() {
                 </form>
                 {mensagem && (
                     <Alert severity="success" sx={{ marginTop: '20px' }}>
-                        {mensagem}
+                        {mensagem} Redirecionando para login...
                     </Alert>
                 )}
                 {erro && (
