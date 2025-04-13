@@ -1,0 +1,65 @@
+/* src/styles/RegistroProblema.css */
+
+.registro-page-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 60px); /* Ajusta a altura para considerar a altura da NavBar */
+    background-color: #f5f5f5;
+    padding-top: 20px;
+}
+
+.registro-container {
+    max-width: 500px;
+    width: 100%;
+    margin: auto;
+    padding: 2rem;
+    background-color: #fdfdfd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.registro-title {
+    font-size: 1.9rem;
+    text-align: center;
+    color: #333;
+}
+
+.registro-form input,
+.registro-form textarea,
+.registro-form button {
+    width: 100%;
+    margin: 0.5rem 0;
+    padding: 0.8rem;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.registro-form button {
+    background-color: #1ab33b;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.registro-form button:hover {
+    background-color: #ff5722;
+}
+
+.localizacao {
+    margin-top: 20px;
+}
+
+.localizacao input {
+    width: calc(100% - 22px);
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+
+

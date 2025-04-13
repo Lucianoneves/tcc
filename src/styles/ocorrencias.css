@@ -1,0 +1,87 @@
+.ocorrencias-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f2f2f2;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.ocorrencias-container h1,
+.ocorrencias-container h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+label {
+    flex-grow: 1;
+    font-size: 16px;
+}
+
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+button:first-child {
+    background-color: #4CAF50;
+    color: white;
+}
+
+button:last-child {
+    background-color: #4d4646;
+    color: white;
+}
+
+.nova-ocorrencia {
+    margin-top: 20px;
+}
+
+.nova-ocorrencia input {
+    padding: 8px;
+    width: 300px;
+    margin-right: 10px;
+}
+
+.nova-ocorrencia button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.historico {
+    margin-top: 30px;
+}
+
+.status.em-análise {
+    color: rgb(180, 169, 13);
+}
+
+.status.pendente {
+    color: rgb(255, 0, 0);
+}
+
+.status.concluído {
+    color: green;
+}
