@@ -8,6 +8,7 @@ import { db, storage } from "../services/firebaseConnection";  // Importando sto
 import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
 import { getAuth } from "firebase/auth";
+import MapaOcorrencias from './MapaOcorrencias';
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -26,8 +27,10 @@ const StatusSpan = styled('span')(({ status }) => ({
 const Ocorrencias = () => {
     const navigate = useNavigate();
     const [ocorrencias, setOcorrencias] = useState([]);
+    const [descricaoVisible, setDescricaoVisible] = useState(false); // Controle da visibilidade do campo
     const [ocorrenciaExecutada, setOcorrenciaExecutada] = useState('');
     const [descricaoEditada, setdescricaoEditada] = useState('');
+    const [tarefaEditada, setTarefaEditada] = useState('');
     const [statusEditado, setStatusEditado] = useState('');
     const [editandoOcorrencia, setEditandoOcorrencia] = useState(null);
     const [selecionadas, setSelecionadas] = useState([]);
@@ -42,6 +45,34 @@ const Ocorrencias = () => {
     const [isAdmin, setIsAdmin] = useState(false);  // Estado para verificar se o usuário é admin
     const [usuarios, setUsuarios] = useState();
     const [userNome, setUserNome] = useState('');  // Novo estado para armazenar o nome do usuário
+    
+
+
+
+
+
+
+function Ocorrencias() {
+    const [mostrarMapa, setMostrarMapa] = useState(false);
+
+    return (
+        <div>
+            <button onClick={() => setMostrarMapa(!mostrarMapa)}>
+                {mostrarMapa ? 'Ocultar Mapa' : 'Mostrar Mapa'}
+            </button>
+            
+            {mostrarMapa && <MapaOcorrencias />}
+            
+            {/* Restante do conteúdo */}
+        </div>
+    );
+}
+
+ // Função para navegar para a página do mapa
+ const handleNavigateToMap = () => {
+    navigate('/MapaOcorrencias'); // Substitua pela rota correta do seu mapa
+};
+
 
 
 
@@ -79,6 +110,9 @@ const Ocorrencias = () => {
         return () => unsubscribe(); // Limpa o listener ao desmontar o componente
     }, []);
 
+
+
+
     useEffect(() => {
         const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
         if (ocorrenciasSalvas && Array.isArray(usuarios) && usuarios.length > 0) {
@@ -109,52 +143,53 @@ const Ocorrencias = () => {
         console.log("Ocorrências no localStorage:", localStorage.getItem('ocorrencias'));
     }, [usuarios, ocorrencias]); // Logs para depuração
 
+   
+
 
 
 
     const handleSalvarEdicao = async (id) => {
-        if (descricaoEditada.trim() && statusEditado) {
-            try {
-                // Referência para o documento a ser atualizado no Firestore
-                const docRef = doc(db, "ocorrencias", id); // Usando o id correto
+        // Verifica se todos os campos obrigatórios estão preenchidos
+        if (!descricaoEditada.trim() || !statusEditado || !tarefaEditada.trim()) {
+            setSnackbarMessage('Preencha todos os campos para salvar.');
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+            return;
+        }
 
-                // Atualizando o documento no Firestore
-                await updateDoc(docRef, {
+        try {
+            const docRef = doc(db, "ocorrencias", id);
+            await updateDoc(docRef, {
+                descricao: descricaoEditada,
+                status: statusEditado,
+                tarefaEditada: tarefaEditada,
+            });
+
+            setOcorrencias(prev => prev.map(ocorrencia =>
+                ocorrencia.id === id ? {
+                    ...ocorrencia,
                     descricao: descricaoEditada,
                     status: statusEditado,
-                });
+                    tarefaEditada: tarefaEditada
+                } : ocorrencia
+            ));
 
-                // Atualizar o estado local após a edição
-                setOcorrencias((prev) =>
-                    prev.map((ocorrencia) =>
-                        ocorrencia.id === id
-                            ? { ...ocorrencia, descricao: descricaoEditada, status: statusEditado }
-                            : ocorrencia
-                    )
-                );
-
-                // Fechar a edição e mostrar mensagem de sucesso
-                setEditandoOcorrencia(null);
-                setSnackbarMessage('Ocorrência editada com sucesso!');
-                setSnackbarSeverity('success');
-                setSnackbarOpen(true);
-            } catch (error) {
-                console.error("Erro ao editar ocorrência: ", error);
-                setSnackbarMessage('Erro ao editar a ocorrência.');
-                setSnackbarSeverity('error');
-                setSnackbarOpen(true);
-            }
-        } else {
-            setSnackbarMessage('Preencha todos os campos para salvar.');
+            setEditandoOcorrencia(null);
+            setSnackbarMessage('Ocorrência editada com sucesso!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+        } catch (error) {
+            console.error("Erro ao editar ocorrência: ", error);
+            setSnackbarMessage('Erro ao editar a ocorrência.');
             setSnackbarSeverity('error');
             setSnackbarOpen(true);
         }
     };
 
 
-
     const handleExecucao = async () => {
         if (ocorrenciaExecutada.trim()) {
+            setDescricaoVisible(true); // Mostrar o campo de descrição quando o botão for clicado
             const usuarioId = user.uid; // Supondo que 'user' já seja o objeto do usuário autenticado
             const nomeUsuario = user.nome; // Supondo que 'user' tenha o nome
             const localizacao = 'Rua XYZ, Bairro ABC'; // Exemplo de localizacao, você pode obter isso de um input ou estado
@@ -168,7 +203,8 @@ const Ocorrencias = () => {
                 nomeUsuario: user.nome, // Adicionando o nome do usuário
                 localizacao, // Adicionando a localização
                 imagens,     // Adicionando imagens (a lista de URLs das imagens)
-                observacoes
+                observacoes,
+                tarefaEditada: tarefaEditada,
             };
 
             console.log("Adicionando nova ocorrência: ", nova); // Log para depuração
@@ -221,12 +257,13 @@ const Ocorrencias = () => {
             const ocorrenciasAtualizadas = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 descricao: doc.data().descricao,
+                tarefaEditada: doc.data().tarefaEditada,
                 status: doc.data().status,
                 observacoes: doc.data().observacoes,
                 data: doc.data().data,
                 usuarioId: doc.data().usuarioId, // Incluindo usuarioId
                 nomeUsuario: doc.data().nomeUsuario, // Incluindo nomeUsuario
-                localizacao: doc.data().localizacao, // Incluindo localizacao
+                endereco: doc.data().endereco, // Incluindo localizacao
                 imagens: doc.data().imagens || [] // Incluindo imagens            
             }));
             setOcorrencias(ocorrenciasAtualizadas);
@@ -234,6 +271,27 @@ const Ocorrencias = () => {
 
         return () => unsubscribe(); // Desinscrever ao desmontar o componente
     }, []);
+
+
+    async function adicionarOcorrencia(ocorrencia) {
+        try {
+            const docRef = await addDoc(collection(db, "ocorrencias"), {
+                descricao: ocorrencia.descricao,
+                tarefaEditada: ocorrencia.tarefaEditada,
+                status: ocorrencia.status,
+                observacoes: ocorrencia.observacoes,
+                data: ocorrencia.data,
+                usuarioId: ocorrencia.usuarioId,
+                nomeUsuario: ocorrencia.nomeUsuario,
+                endereco: ocorrencia.endereco,
+                imagens: ocorrencia.imagens || []
+            });
+
+            console.log("Ocorrência registrada com ID:", docRef.id);
+        } catch (error) {
+            console.error("Erro ao adicionar ocorrência:", error);
+        }
+    }
 
 
 
@@ -267,10 +325,14 @@ const Ocorrencias = () => {
         // Incluir a data na ocorrência ao enviar
         const ocorrenciasComData = ocorrencias.filter((ocorrencia) =>
             selecionadas.includes(ocorrencia.id)
+
         ).map((ocorrencia) => ({
             ...ocorrencia,
             data: ocorrencia // Adicionando a data da ocorrência
         }));
+
+        console.log("Ocorrência Executada: ", ocorrenciaExecutada);
+        setDescricaoVisible(false); // Esconde o campo após enviar
 
         console.log('Ocorrências enviadas:', ocorrenciasComData);
         setSnackbarMessage('Ocorrências enviadas com sucesso!');
@@ -361,8 +423,9 @@ const Ocorrencias = () => {
 
 
     return (
+
         <Container>
-            <Typography variant="h4" gutterBottom>Ocorrências</Typography>
+            <Typography variant="h4" gutterBottom>Ocorrências Recebidas pelos Usuários</Typography>
             <Button onClick={handleSelectAll} variant="outlined" color="primary">
                 Selecionar Todas
             </Button>
@@ -377,6 +440,7 @@ const Ocorrencias = () => {
                             checked={selecionadas.includes(ocorrencia.id)}
                             onChange={() => handleCheckboxChange(ocorrencia.id)}
                         />
+
                         {editandoOcorrencia === ocorrencia.id ? (
                             <>
                                 <TextField
@@ -384,6 +448,14 @@ const Ocorrencias = () => {
                                     onChange={(e) => setdescricaoEditada(e.target.value)}
                                     fullWidth
                                     label="Descrição"
+                                    margin="normal"
+                                />
+                                <TextField
+                                    value={tarefaEditada}
+                                    onChange={(e) => setTarefaEditada(e.target.value)}
+                                    fullWidth
+                                    label="Tarefa Executada"
+                                    margin="normal"
                                 />
                                 <TextField
                                     value={statusEditado}
@@ -391,15 +463,26 @@ const Ocorrencias = () => {
                                     fullWidth
                                     label="Status"
                                     select
+                                    margin="normal"
                                 >
                                     <MenuItem value="Pendente">Pendente</MenuItem>
                                     <MenuItem value="Em Andamento">Em Andamento</MenuItem>
                                     <MenuItem value="Concluído">Concluído</MenuItem>
                                 </TextField>
-                                <Button onClick={() => handleSalvarEdicao(ocorrencia.id)} variant="contained" color="primary">
+                                <Button
+                                    onClick={() => handleSalvarEdicao(ocorrencia.id)}
+                                    variant="contained"
+                                    color="primary"
+                                    style={{ marginTop: '16px' }}
+                                >
                                     Salvar
                                 </Button>
-                                <Button onClick={() => setEditandoOcorrencia(null)} variant="outlined" color="secondary">
+                                <Button
+                                    onClick={() => setEditandoOcorrencia(null)}
+                                    variant="outlined"
+                                    color="secondary"
+                                    style={{ marginTop: '16px', marginLeft: '8px' }}
+                                >
                                     Cancelar
                                 </Button>
                             </>
@@ -410,20 +493,27 @@ const Ocorrencias = () => {
                                     secondary={
                                         <>
                                             <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
-                                            <Typography variant="body2">Enviado por:  {ocorrencia.nomeUsuario}</Typography>
+                                            <Typography variant="body2">Enviado por: {ocorrencia.nomeUsuario}</Typography>
                                             <Typography variant="body2">
                                                 <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
+                                                <Typography variant="body2"></Typography>
+                                                <strong>Endereço:</strong> {ocorrencia.endereco || 'Não selecionada'}
+                                                <Typography variant="body2"></Typography>
+                                                <strong>Descrição da Ocorrência do usuário:</strong> {ocorrencia.observacoes || 'Não selecionada'}
                                             </Typography>
-
-
+                                            <Typography variant="body2"></Typography>
+                                            <strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não selecionada'}
                                         </>
                                     }
                                 />
                                 <Button onClick={() => {
                                     setdescricaoEditada(ocorrencia.descricao);
-                                    setStatusEditado(ocorrencia.status);
+                                    setTarefaEditada(ocorrencia.tarefaEditada || ''); // Garante que não será undefined
+                                    setStatusEditado(ocorrencia.status || 'Pendente'); // Define um valor padrão se estiver vazio
                                     setEditandoOcorrencia(ocorrencia.id);
-                                }}>Editar</Button>
+                                }}>
+                                    Editar
+                                </Button>
                                 <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
                                     Remover
                                 </Button>
@@ -432,9 +522,6 @@ const Ocorrencias = () => {
                     </ListItem>
                 ))}
             </List>
-
-
-
 
             {ocorrencias.map((ocorrencia) => (
                 ocorrencia.media && ocorrencia.media.map((mediaURL, index) => (
@@ -451,11 +538,7 @@ const Ocorrencias = () => {
                             Remover Arquivo
                         </Button>
                     </div>
-                ))
-            ))}
-
-
-
+                ))))};
 
 
             <TextField
@@ -469,19 +552,28 @@ const Ocorrencias = () => {
                 onChange={(e) => setSelectedFile(e.target.files[0])}
             />
             <Button onClick={handleExecucao} variant="contained" color="primary">
-                Adicionar Ocorrência
+                Execução da ocorrência
             </Button>
             <Button onClick={handleSubmit} variant="contained" color="primary">
-                Enviar Ocorrências
+                Enviar Ocorrências para Usuários
             </Button>
+
             <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}>
                 <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </Container>
+            <Button 
+                onClick={handleNavigateToMap} 
+                variant="contained" 
+                color="primary"
+                style={{ margin: '8px' }}
+            >
+                Ver Mapa de Ocorrências
+            </Button>
 
-    );
+        </Container>
+    )
 }
 
 export default Ocorrencias;

@@ -9,6 +9,7 @@ import RedefinirSenha from './pages/redefinirSenha';
 import RegistroProblemas from './pages/registroProblemas';
 import Ocorrencias from './pages/ocorrencias';
 import AdminPage from './pages/adminPage';
+import MapaOcorrencias from './pages/MapaOcorrencias';
 import Home from './pages/Home';
 import AuthProvider from './contexts/auth';
 import { ToastContainer } from 'react-toastify';
@@ -21,8 +22,6 @@ import PerfilUsuario from './pages/perfilUsuario';
 
 
 
-
-
 function App() {
     return (
         <Router>
@@ -30,28 +29,19 @@ function App() {
                 <ToastContainer autoClose={3000} /> 
                 <Navbar />
                 <Routes>
-                    <Route path="/" element={<Home />} /> {/* Página inicial */}
-                    <Route path="/login" element={<Login />} /> {/* Tela login */}
-                    <Route path="/cadastrarUsuario" element={<CadastroUsuario />} /> {/* Tela de cadastro */}
-                    <Route path="/perfil" element={<Private><Perfil /> </Private>} />
-                    <Route path="/registroProblemas" element={<Private><ProtectedRoute /><RegistroProblemas /> </Private>} />
-                    {/* Rota para a página do Administrador */}
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/cadastrarUsuario" element={<CadastroUsuario />} />
+                    <Route path="/perfil" element={<Private><Perfil /></Private>} />
+                    <Route path="/registroProblemas" element={<Private><ProtectedRoute /><RegistroProblemas /></Private>} />
                     <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/redefinir-senha" element={<RedefinirSenha />} /> {/* Tela de redefinir senha */}
-
-
-
-                    {/* Rota para a página de Registro de Ocorrências */}
+                    <Route path="/redefinir-senha" element={<RedefinirSenha />} />
                     <Route path="/ocorrencias" element={<Ocorrencias />} />
                     <Route path="/adminPage" element={<AdminPage />} />
-
-
-
-                    {/* Você pode adicionar outras rotas aqui conforme a necessidade */}
+                    <Route path="/MapaOcorrencias" element={<MapaOcorrencias />} />
                 </Routes>
             </AuthProvider>
         </Router>
     );
 }
-
 export default App;
