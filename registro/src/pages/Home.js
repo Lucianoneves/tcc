@@ -21,10 +21,11 @@ function Home() {
         >
             <Container maxWidth="sm" className="home-container" style={{ textAlign: 'center', marginTop: '50px' }}>
                 <Typography variant="h3" component="h1" gutterBottom className="home-title">
-                    Bem-vindo à Página Inicial
+                   SMU 
+                   Sistema Melhoria Urbana
                 </Typography>
                 <Typography variant="body1" className="home-description" gutterBottom>
-                    Esta é a página principal do aplicativo.
+                    
                 </Typography>
 
                 <Box mt={4}>

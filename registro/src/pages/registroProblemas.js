@@ -201,15 +201,15 @@ function RegistroProblemas() {
   const handleAdicionarOcorrencia = async () => {
     const dataAtual = new Date();
     const dataFormatada = dataAtual.toLocaleString();
-     // Armazena o endereço antes de limpar o estado
-     const enderecoAtual = enderecoEditavel.trim();
+    // Armazena o endereço antes de limpar o estado
+    const enderecoAtual = enderecoEditavel.trim();
 
 
-    setEndereco(""); 
+    setEndereco("");
     setEnderecoEditavel(""); // Limpa o campo editável também
 
 
-  
+
 
 
 
@@ -219,7 +219,7 @@ function RegistroProblemas() {
         usuarioId: user.uid,
         nomeUsuario: user.nome,
         descricao: novaOcorrencia,
-        endereco: enderecoAtual,       
+        endereco: enderecoAtual,
         observacoes,
         status: '',
         data: dataFormatada,
@@ -227,13 +227,13 @@ function RegistroProblemas() {
       };
 
       // Função para editar o endereço de uma ocorrência específica
-const editarEnderecoOcorrencia = (id, novoEndereco) => {
-  setOcorrencias((prevOcorrencias) =>
-    prevOcorrencias.map((ocorrencia) =>
-      ocorrencia.id === id ? { ...ocorrencia, endereco: novoEndereco } : ocorrencia
-    )
-  );
-};
+      const editarEnderecoOcorrencia = (id, novoEndereco) => {
+        setOcorrencias((prevOcorrencias) =>
+          prevOcorrencias.map((ocorrencia) =>
+            ocorrencia.id === id ? { ...ocorrencia, endereco: novoEndereco } : ocorrencia
+          )
+        );
+      };
 
       try {
         const docRef = await addDoc(collection(db, "ocorrencias"), nova);
@@ -269,7 +269,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
 
   const handleEditarOcorrencia = async (id) => {
     const ocorrenciaRef = doc(db, "ocorrencias", id); // Referência para a ocorrência que será editada
-  
+
     // Atualizando os campos da ocorrência
     try {
       await updateDoc(ocorrenciaRef, {
@@ -279,14 +279,14 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
         nomeUsuario: user.nome,
         endereco: endereco, // Atualiza o endereço
       });
-  
+
       setOcorrencias((prev) =>
         prev.map((ocorrencia) =>
           ocorrencia.id === id ? { ...ocorrencia, endereco } : ocorrencia
         )
       );
-      
-  
+
+
       setSnackbarMessage('Ocorrência editada com sucesso!');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
@@ -297,12 +297,12 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
       setSnackbarOpen(true);
     }
   };
-  
-  
+
+
 
   const handleEditarClick = (id) => {
     const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
-  
+
     if (ocorrenciaSelecionada) {
       setOcorrenciaEditar(ocorrenciaSelecionada); // Preenche o estado com a ocorrência selecionada
       setNovaOcorrencia(ocorrenciaSelecionada.descricao); // Preenche o campo de descrição
@@ -310,7 +310,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
       setEndereco(ocorrenciaSelecionada.endereco); // Preenche o campo de endereço específico
     }
   };
-  
+
 
 
 
@@ -324,7 +324,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
           nomeUsuario: user.nome,
           endereco: endereco, // Atualiza o endereço específico da ocorrência
         });
-  
+
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
             return {
@@ -337,7 +337,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
           }
           return ocorrencia;
         });
-  
+
         setOcorrencias(novaListaOcorrencias); // Atualiza a lista de ocorrências
         setNovaOcorrencia("");
         setObservacoes("");
@@ -348,7 +348,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
       }
     }
   };
-  
+
 
 
 
@@ -395,6 +395,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
           endereco: endereco,
           data: new Date().toISOString(),
           descricao: o.descricao,
+          tarefaEditada: ocorrencia.tarefaEditada,
           localizacao: localizacao || '',
           melhoria,
           imagens: imagens,
@@ -550,6 +551,7 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
           usuarioId: user.uid,
           nomeUsuario: user.nome,
           descricao: o.descricao,
+          tarefaEditada: ocorrencia.tarefaEditada,
           localizacao: localizacao || "Não especificada",
           endereco: endereco,
           data: new Date().toISOString(),
@@ -618,18 +620,27 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                 <Box>
                   <Typography variant="body2">
-                    <strong>Descrição:</strong> {o.descricao}
+                    <strong>Ocorrência:</strong> {o.descricao}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Observações:</strong> {o.observacoes}
+                    <strong>Descrição da Ocorrência:</strong> {o.observacoes}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Data da Ocorrência:</strong> {o.data}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Endereço:</strong> { o.endereco }
+                    <strong>Endereço:</strong> {o.endereco}
                   </Typography>
+                  <Typography variant="body2"></Typography>
+                  <strong>Tarefa executada:</strong> {o.tarefaEditada || 'Não selecionada'}
+                  <Typography variant="body2"></Typography>
 
+                  <Typography variant="body2">
+                    <strong>Data da execução:</strong>
+                    {o.dataTarefaExecutada ?
+                      new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
+                      'Data não disponível'}
+                  </Typography>
 
                   <Typography
                     variant="body2"
@@ -649,9 +660,6 @@ const editarEnderecoOcorrencia = (id, novoEndereco) => {
                 <Box>
                   <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
                     Editar
-                  </Button>
-                  <Button variant="outlined" color="error" onClick={() => handleRemoverOcorrencia(o.id)}>
-                    Remover
                   </Button>
                   <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
                     Salvar
