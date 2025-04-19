@@ -33,6 +33,7 @@ function PerfilUsuario() {
             setEmail(userData.email || "");
             setTelefone(userData.telefone || "");
             setEndereco(userData.endereco || "");
+            setFotoPreview(userData.fotoPerfil || null); // Carrega a foto de perfil se existir
           }
         } catch (error) {
           console.error("Erro ao carregar dados:", error);
@@ -125,8 +126,10 @@ function PerfilUsuario() {
   const userDocRef = doc(db, "users", user.uid);
   const updates = {
     nome: nome.trim(),
+    email: email.trim(),
     telefone: telefone.trim(),
     endereco: endereco.trim(),
+    fotoPerfil: fotoPreview.trim() || user.fotoPerfil, // Mantém a foto atual se não houver nova
   };
 
   try {

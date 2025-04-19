@@ -83,28 +83,23 @@ function CadastrarUsuario() {
     setConfirmarSenha('');
   };
 
-  const handleFotoChange = async (e) => {
-    const file = e.target.files[0];   
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFotoPreview(reader.result);
+   // Alteração de foto de perfil
+       const handleFotoChange = (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            localStorage.setItem("fotoPerfil", reader.result);
+            setFotoPreview(reader.result);
+            toast.success("Foto de perfil atualizada!");
+          };
+          reader.readAsDataURL(file);
+        } else {
+          toast.error("Por favor, selecione uma imagem válida.");
+        }
       };
-      reader.readAsDataURL(file);
-  
-      // Faz o upload para o Firebase Storage
-      try {
-        const storageRef = ref(storage, `perfilFotos/${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        setFotoPerfil(downloadURL); // Salva o URL da foto no estado
-        toast.success('Foto de perfil enviada com sucesso!');
-      } catch (error) {
-        console.error('Erro ao enviar foto para o Firebase:', error);
-        toast.error('Erro ao enviar foto de perfil.');
-      }
-    }
-  };
+
+
   
 
 
