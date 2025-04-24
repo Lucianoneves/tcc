@@ -25,6 +25,7 @@ function AuthProvider({ children }) {
   const [descricao, setDescricao] = useState("");
    const [endereco, setEndereco] = useState('');
 
+
  
 
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ function AuthProvider({ children }) {
             nome: docSnap.data().nome,
             email: currentUser.email,
             avatarUrl: docSnap.data().avatarUrl || null,
-            fotoPerfil: fotoPreview.trim() || user.fotoPerfil, // Mantém a foto atual se não houver nova
+           
           };
 
           setUser(userData);

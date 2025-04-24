@@ -4,6 +4,7 @@ import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, Lis
     from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
+import Chip from '@mui/material/Chip';
 import { db, storage } from "../services/firebaseConnection";  // Importando storage
 import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
@@ -44,6 +45,7 @@ const Ocorrencias = () => {
     const [observacoes, setObservacoes] = useState('');
     const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);  // Estado para verificar se o usuário é admin
+    const [adminNome, setAdminNome] = useState('');
     const [usuarios, setUsuarios] = useState();
     const [userNome, setUserNome] = useState('');  // Novo estado para armazenar o nome do usuário
 
@@ -78,13 +80,20 @@ const Ocorrencias = () => {
 
 
     useEffect(() => {
-        const usuarioAdmin = localStorage.getItem('isAdmin');
-        const user = getAuth().currentUser; // Obtenha o usuário atual
-        if (usuarioAdmin !== 'true' && user) {
-            setIsAdmin(true);
-            navigate('/login');  // Redirecionar para login se não for admin
+        const nome = localStorage.getItem('adminNome');
+        if (nome) {
+            setAdminNome(nome);
+        } else {
+            navigate('/login'); // Redireciona se não estiver logado
+        }
+
+        // Verifica se é admin
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        if (!isAdmin) {
+            navigate('/login');
         }
     }, [navigate]);
+
 
     useEffect(() => {
         const user = getAuth().currentUser; // Obtém o usuário atual
@@ -263,32 +272,6 @@ const Ocorrencias = () => {
 
 
 
-
-    const handleRemoverOcorrencia = async (id) => {
-        try {
-            // Remover no Firestore
-            const docRef = doc(db, "ocorrencias", id);
-            await deleteDoc(docRef);
-
-            // Atualizar o estado local após a remoção
-            setOcorrencias((prev) => prev.filter((ocorrencia) => ocorrencia.id !== id));
-
-            setSnackbarMessage('Ocorrência removida com sucesso!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
-        } catch (error) {
-            console.error("Erro ao remover ocorrência: ", error);
-            setSnackbarMessage('Erro ao remover a ocorrência.');
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
-        }
-    };
-
-
-
-
-
-
     const handleSubmit = () => {
         // Incluir a data na ocorrência ao enviar
         const ocorrenciasComData = ocorrencias.filter((ocorrencia) =>
@@ -394,12 +377,23 @@ const Ocorrencias = () => {
 
         <Container>
             <Typography variant="h4" gutterBottom>Ocorrências Recebidas pelos Usuários</Typography>
+
+           
+
             <Button onClick={handleSelectAll} variant="outlined" color="primary">
                 Selecionar Todas
             </Button>
             <Button onClick={handleSair} variant="outlined" color="secondary">
                 Sair
             </Button>
+
+            
+            {/* Exibe o NOME do admin logado */}
+            <Typography variant="subtitle1" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Logado como: <strong>{adminNome}</strong>
+                <Chip label="Administrador" color="primary" size="small" />
+            </Typography>
+
 
             <List>
                 {ocorrencias.map((ocorrencia) => (
@@ -509,9 +503,7 @@ const Ocorrencias = () => {
                                 }}>
                                     Editar
                                 </Button>
-                                <Button onClick={() => handleRemoverOcorrencia(ocorrencia.id)} color="error">
-                                    Remover
-                                </Button>
+
                             </>
                         )}
                     </ListItem>

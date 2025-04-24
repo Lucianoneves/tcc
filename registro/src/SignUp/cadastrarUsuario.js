@@ -21,9 +21,7 @@ function CadastrarUsuario() {
   const { cadastrarUsuario, loadingAuth } = useContext(AuthContext); 
 
   const handleSubmit = async (e) => {
-    e.preventDefault();   
-
- 
+    e.preventDefault();    
 
 
     // Validações
@@ -58,15 +56,14 @@ function CadastrarUsuario() {
     }
 
     try {
-      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone,fotoPerfil);
-
-      // Resetando o formulário
+      // Passa a URL da foto para a função de cadastro
+      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone, fotoPerfil);
+  
       resetForm();
-      navigate('/perfil'); // Opcional: redirecionar para login após cadastro
+      navigate('/perfil');
     } catch (error) {
       console.error('Erro ao cadastrar usuário:', error);
-      toast.error("Erro ao fazer o")
-      navigate('cadastroUsuario'); // Se der erro permanecer na mesma pagina
+      toast.error("Erro ao fazer o cadastro");
     }
   };
 
@@ -83,22 +80,32 @@ function CadastrarUsuario() {
     setConfirmarSenha('');
   };
 
-   // Alteração de foto de perfil
-       const handleFotoChange = (e) => {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            localStorage.setItem("fotoPerfil", reader.result);
-            setFotoPreview(reader.result);
-            toast.success("Foto de perfil atualizada!");
-          };
-          reader.readAsDataURL(file);
-        } else {
-          toast.error("Por favor, selecione uma imagem válida.");
-        }
-      };
-
+  const handleFotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith("image/")) {
+      try {
+        // Criar referência no Storage
+        const storageRef = ref(storage, `profilePhotos/${Date.now()}_${file.name}`);
+        
+        // Fazer upload da imagem
+        const uploadTask = await uploadBytes(storageRef, file);
+        
+        // Obter a URL de download
+        const downloadURL = await getDownloadURL(uploadTask.ref);
+        
+        // Atualizar o estado com a URL da imagem
+        setFotoPerfil(downloadURL);
+        setFotoPreview(downloadURL);
+        
+        toast.success("Foto de perfil carregada com sucesso!");
+      } catch (error) {
+        console.error("Erro ao fazer upload da imagem:", error);
+        toast.error("Erro ao carregar a foto de perfil.");
+      }
+    } else {
+      toast.error("Por favor, selecione uma imagem válida.");
+    }
+  };
 
   
 

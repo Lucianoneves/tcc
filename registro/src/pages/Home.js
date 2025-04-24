@@ -70,7 +70,7 @@ function Home() {
                         textShadow: '1px 1px 2px rgba(0, 0, 0, 0.5)'
                     }}
                 >
-                    Transformando cidades, melhorando vidas
+                    Transformando regiões, melhorando vidas
                 </Typography>
 
                 {/* Botões de Login e Cadastro */}

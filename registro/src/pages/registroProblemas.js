@@ -611,7 +611,7 @@ function RegistroProblemas() {
           Registrar Ocorrências da sua Região
         </Typography>
         <Typography variant="subtitle1" gutterBottom>
-          Bem-vindo, {user.nome}!
+          Bem-vindo, {user.nome}  
         </Typography>
 
         <List>
