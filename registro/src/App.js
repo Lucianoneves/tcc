@@ -17,6 +17,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import Private from './routes/Private'
 import ProtectedRoute from "./routes/protectedRouter";
 import PerfilUsuario from './pages/perfilUsuario';
+import OcorrenciasMes from './pages/ocorrenciasMes';
+
 
 
 
@@ -34,6 +36,7 @@ function App() {
                     <Route path="/cadastrarUsuario" element={<CadastroUsuario />} />
                     <Route path="/perfil" element={<Private><Perfil /></Private>} />
                     <Route path="/registroProblemas" element={<Private><ProtectedRoute /><RegistroProblemas /></Private>} />
+                    <Route path="/ocorrenciasMes" element={<OcorrenciasMes />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/redefinir-senha" element={<RedefinirSenha />} />
                     <Route path="/ocorrencias" element={<Ocorrencias />} />

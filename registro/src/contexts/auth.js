@@ -264,3 +264,8 @@ async function excluirPerfil() {
 }
 
 export default AuthProvider;
+
+
+
+
+//Componente que centraliza  toda a logica  de autenticação  e gerenciamento de usuarios o mesmo atentifica  Usuarios na parte de login,vadastro, logout    gerencimanto de senhas na parte  de redefinirsenha   naparte de gerenciamentode perfil  excluir Perfil  e naparte de RegistroOcorrencias  //

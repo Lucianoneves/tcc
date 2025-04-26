@@ -41,7 +41,7 @@ function RedefinirSenha() {
             } else if (error.code === 'auth/invalid-email') {
                 setErro('E-mail inválido.');
             } else {
-                setErro('Erro ao enviar o e-mail. Tente novamente.');
+                setErro('Erro ao enviar o e-mail. Tente novamente.');   
             }
         } finally {
             setCarregando(false);
@@ -58,7 +58,7 @@ function RedefinirSenha() {
                     backgroundColor: 'white',
                 }}
             >
-                <Typography variant="h4" gutterBottom align="center">
+                <Typography variant="h4" gutterBottom align="center">    
                     Redefinir Senha
                 </Typography>
                 <form onSubmit={handleSubmit}>
@@ -98,3 +98,6 @@ function RedefinirSenha() {
 }
 
 export default RedefinirSenha;
+
+//Função Principal do codigo  //
+// Uso do API que é nativo do proprio firebase   para redefinação de senha ou verificacao de email . O firebase envia um email com um link  um  token  temporario,   atraves de um parametro do firebase node=resePassword indicando uma ação sera  realizada para redefinição de senha    //

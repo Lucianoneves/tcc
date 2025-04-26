@@ -27,6 +27,7 @@ const StatusSpan = styled('span')(({ status }) => ({
 
 const Ocorrencias = () => {
     const navigate = useNavigate();
+    const [mostrarMapa, setMostrarMapa] = useState(false); // Estado para controlar a exibição 
     const [ocorrencias, setOcorrencias] = useState([]);
     const [descricaoVisible, setDescricaoVisible] = useState(false); // Controle da visibilidade do campo
     const [ocorrenciaExecutada, setOcorrenciaExecutada] = useState('');
@@ -51,12 +52,7 @@ const Ocorrencias = () => {
 
 
 
-
-
-
-
-    function Ocorrencias() {
-        const [mostrarMapa, setMostrarMapa] = useState(false);
+    function Ocorrencias() {     
 
         return (
             <div>

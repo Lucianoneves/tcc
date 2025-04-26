@@ -17,6 +17,7 @@ import { toast } from 'react-toastify';
 
 function RegistroProblemas() {
 
+  const navigate = useNavigate(); // Hook para redirecionamento
   const [ocorrencias, setOcorrencias] = useState([]);
   const [novaOcorrencia, setNovaOcorrencia] = useState('');
   const [selecionadas, setSelecionadas] = useState([]);
@@ -31,7 +32,6 @@ function RegistroProblemas() {
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
-  const navigate = useNavigate(); // Hook para redirecionamento
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -46,19 +46,14 @@ function RegistroProblemas() {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
 
-
-
-
-
-
-
-
   const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 
   async function handleLogout() {
-    await logout();
-  }
+    await logout();}
+
+  
+ 
 
 
 
@@ -605,7 +600,16 @@ function RegistroProblemas() {
         <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
           Sair
         </Button>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => navigate('/ocorrenciasMes')}
+          fullWidth
+        >
+          Ver Ocorrências do Mês
+        </Button>
       </Box>
+      
       <Paper sx={{ padding: 3, mb: 4 }}>
         <Typography variant="h5" gutterBottom>
           Registrar Ocorrências da sua Região
@@ -670,8 +674,6 @@ function RegistroProblemas() {
           ))}
         </List>
 
-
-
       </Paper>
 
       <Box mt={4}>
@@ -725,12 +727,7 @@ function RegistroProblemas() {
           />
         </div>
 
-
-
-
       </div>
-
-
 
       <Box mt={4}>
         <Typography variant="h6">Adicionar Imagens</Typography>
