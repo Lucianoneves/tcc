@@ -9,7 +9,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 import { query, setDoc, doc, getDoc, where, getDocs, addDoc, collection, deleteDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";  // Certifique-se de importar o 'getStorage' aqui
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "react-toastify";  // Importando o toast para exibir mensagens de feedback ao usuário de forma mais modernizada
 
 
 

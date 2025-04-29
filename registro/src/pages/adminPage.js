@@ -41,12 +41,13 @@ function AdminPage() {
     const navigate = useNavigate();
 
 
-    const handleLogin = async () => {
+    const handleLogin = async () => {     // Verifica se o nome foi preenchido ,auxilia na autenticação do admin
         setLoading(true);
         setErro(null);
 
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+            const userCredential = await signInWithEmailAndPassword(auth, email, senha);    // Autentica o usuário com email e senha
+            // Obtém o UID gerado pelo Firebase Auth
             const uid = userCredential.user.uid;  // Obtém o UID do usuário logado
 
             // Busca o admin no Firestore usando o UID
@@ -58,7 +59,7 @@ function AdminPage() {
                 return;
             }
 
-        await signInWithEmailAndPassword(auth, email, senha);
+        await signInWithEmailAndPassword(auth, email, senha); 
 
             const userDoc = await getDoc(doc(db, 'administradores', email));
 
@@ -74,27 +75,27 @@ function AdminPage() {
                 await auth.signOut();
             }
         } catch (error) {
-            console.error('Erro no login:', error);
-            setErro('Email ou senha incorretos');
-        } finally {
+            console.error('Erro no login:', error);  // Loga o erro no console para depuração
+            setErro('Email ou senha incorretos');  // Mensagem de erro genérica para o usuário
+        } finally { 
             setLoading(false);
         }
     };
 
 
-    const handleCadastrarAdmin = async () => {
+    const handleCadastrarAdmin = async () => { // Função para cadastrar um novo administrador
         if (!novoAdmin.nome.trim()) {
-            setErro('O nome é obrigatório');
+            setErro('O nome é obrigatório');  // Verifica se o nome foi preenchido
             return;
         }
 
-        if (!novoAdmin.email.includes('@')) {
+        if (!novoAdmin.email.includes('@')) {  // Verifica se o email é válido
             setErro('Email inválido');
             return;
         }
 
         if (novoAdmin.senha.length < 6) {
-            setErro('A senha deve ter pelo menos 6 caracteres');
+            setErro('A senha deve ter pelo menos 6 caracteres');  // Verifica se a senha tem pelo menos 6 caracteres
             return;
         }
 
@@ -103,15 +104,15 @@ function AdminPage() {
             return;
         }
 
-        setLoading(true);
-        setErro(null);
+        setLoading(true); // Inicia o carregamento
+        setErro(null); // Limpa mensagens de erro anteriores
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(
+            const userCredential = await createUserWithEmailAndPassword(  // Cria um novo usuário com email e senha
                 auth,
-                novoAdmin.email,
-                novoAdmin.senha,
-                novoAdmin.nome
+                novoAdmin.email, // 
+                novoAdmin.senha,  // Cria o usuário no Firebase Auth
+                novoAdmin.nome // Adiciona o nome como um campo no Firestore
             );
 
             // Obtém o UID gerado pelo Firebase Auth
@@ -180,7 +181,7 @@ function AdminPage() {
         }
     };
 
-    return (
+    return ( //
         <Container maxWidth="sm">
             <Box mt={5} textAlign="center">
                 <Typography variant="h4" gutterBottom>

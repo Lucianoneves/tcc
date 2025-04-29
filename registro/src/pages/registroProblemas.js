@@ -369,8 +369,6 @@ function RegistroProblemas() {
   };
 
 
-
-
   const handleSubmit = async () => {
     if (!selecionadas.length) {
       alert("Selecione pelo menos uma ocorrência.");
@@ -395,8 +393,6 @@ function RegistroProblemas() {
           melhoria,
           imagens: imagens,
           status: "Pendente",
-
-
 
 
         })
@@ -645,6 +641,9 @@ function RegistroProblemas() {
                       new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
                       'Data não disponível'}
                   </Typography>
+                  <Typography variant="body2">
+                    <strong>Imagem Ocorrência:</strong> {o.imagens || 'Não disponível'}
+                  </Typography>
 
                   <Typography
                     variant="body2"
@@ -726,40 +725,8 @@ function RegistroProblemas() {
             placeholder="Digite o endereço manualmente"
           />
         </div>
-
       </div>
-
-      <Box mt={4}>
-        <Typography variant="h6">Adicionar Imagens</Typography>
-        <Input
-          type="file"
-          inputProps={{ accept: 'image/*', multiple: true }}
-          onChange={handleAddImages}
-          fullWidth
-        />
-        <Box sx={{ mt: 2 }}>
-          {imagens.length > 0 && (
-            <Grid container spacing={2}>
-              {imagens.map((imagem, index) => (
-                <Grid item xs={4} key={index}>
-                  <Paper sx={{ padding: 1 }}>
-                    <img src={imagem} alt={`Imagem ${index}`} style={{ width: '100%' }} />
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      onClick={() => handleRemoveImage(index)}
-                      sx={{ mt: 1 }}
-                      fullWidth
-                    >
-                      Remover
-                    </Button>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          )}
-        </Box>
-      </Box>
+                 
     </Container>
   )
 }
@@ -767,3 +734,6 @@ function RegistroProblemas() {
 
 
 export default RegistroProblemas;
+        
+       
+     
