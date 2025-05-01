@@ -8,6 +8,11 @@ import { collection, doc, getDoc, setDoc, addDoc, query, where, getDocs, deleteD
 import { db } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 import { toast } from 'react-toastify';
+import { saveImage, getImages, deleteImage } from "./imageDB";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+
+
 
 
 
@@ -27,6 +32,8 @@ function RegistroProblemas() {
   const [endereco, setEndereco] = useState('');
   const [resultadoEndereco, setResultadoEndereco] = useState('');
   const [melhoria, setMelhoria] = useState('');
+  const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({});
+  const [imagem, setImagem] = useState(null);
   const [imagens, setImagens] = useState([]);
   const { user, logout, handleReg } = useContext(AuthContext);
   const [nomeUsuario, setNomeUsuario] = useState("");
@@ -50,10 +57,11 @@ function RegistroProblemas() {
 
 
   async function handleLogout() {
-    await logout();}
+    await logout();
+  }
 
-  
- 
+
+
 
 
 
@@ -259,6 +267,65 @@ function RegistroProblemas() {
       setSnackbarOpen(true);
     }
   };
+
+
+  // Função para carregar imagens quando o componente montar ou ocorrências mudarem
+  useEffect(() => {
+    const loadImagesForOcorrencias = async () => {
+      const loadedImages = {};
+      for (const o of ocorrencias) {
+        const imgs = await getImages(o.id);
+        loadedImages[o.id] = imgs;
+      }
+      setImagensPorOcorrencia(loadedImages);
+    };
+
+    if (ocorrencias.length > 0) {
+      loadImagesForOcorrencias();
+    }
+  }, [ocorrencias]);
+
+  const handleAddImage = async (ocorrenciaId, event) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    if (!file.type.match('image.*')) {
+      toast.error('Por favor, selecione um arquivo de imagem válido');
+      return;
+    }
+
+    try {
+      const savedImage = await saveImage(file, ocorrenciaId);
+
+      setImagensPorOcorrencia(prev => ({
+        ...prev,
+        [ocorrenciaId]: [...(prev[ocorrenciaId] || []), savedImage]
+      }));
+
+      toast.success('Imagem adicionada com sucesso!');
+    } catch (error) {
+      console.error("Erro ao salvar imagem:", error);
+      toast.error('Erro ao salvar a imagem');
+    }
+  };
+
+  const handleRemoveImage = async (ocorrenciaId, imageId) => {
+    try {
+      await deleteImage(imageId);
+
+      setImagensPorOcorrencia(prev => ({
+        ...prev,
+        [ocorrenciaId]: prev[ocorrenciaId].filter(img => img.id !== imageId)
+      }));
+
+      toast.success('Imagem removida com sucesso!');
+    } catch (error) {
+      console.error("Erro ao remover imagem:", error);
+      toast.error('Erro ao remover a imagem');
+    }
+  };
+
+
 
 
 
@@ -567,22 +634,6 @@ function RegistroProblemas() {
 
 
 
-
-
-  const handleRemoveImage = (index) => {
-    setImagens(imagens.filter((_, i) => i !== index));
-  };
-
-  const handleAddImages = (event) => {
-    const files = event.target.files;
-    if (files) {
-      const newImagens = Array.from(files).map(file => URL.createObjectURL(file));
-      setImagens(prevImagens => [...prevImagens, ...newImagens]);
-    }
-  };
-
-
-
   const handleDateChange = (e) => {
     setDataOcorrencia(e.target.value);
   };
@@ -596,22 +647,22 @@ function RegistroProblemas() {
         <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
           Sair
         </Button>
-        <Button 
-          variant="contained" 
-          color="primary" 
+        <Button
+          variant="contained"
+          color="primary"
           onClick={() => navigate('/ocorrenciasMes')}
           fullWidth
         >
           Ver Ocorrências do Mês
         </Button>
       </Box>
-      
+
       <Paper sx={{ padding: 3, mb: 4 }}>
         <Typography variant="h5" gutterBottom>
           Registrar Ocorrências da sua Região
         </Typography>
         <Typography variant="subtitle1" gutterBottom>
-          Bem-vindo, {user.nome}  
+          Bem-vindo, {user.nome}
         </Typography>
 
         <List>
@@ -641,9 +692,10 @@ function RegistroProblemas() {
                       new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
                       'Data não disponível'}
                   </Typography>
-                  <Typography variant="body2">
-                    <strong>Imagem Ocorrência:</strong> {o.imagens || 'Não disponível'}
-                  </Typography>
+
+
+
+
 
                   <Typography
                     variant="body2"
@@ -659,7 +711,59 @@ function RegistroProblemas() {
                   >
                     Status: {o?.status || 'Pendente'}
                   </Typography>
+
+                  <Typography variant="body2">
+                    <strong>Imagens:</strong>
+
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+         
+                    {imagensPorOcorrencia[o.id]?.map((img) => (
+                      <Box key={img.id} position="relative" sx={{ m: 1 }}>
+                        <img
+                          src={img.url}  // Usando a URL diretamente
+                          alt={`Imagem da ocorrência ${o.id}`}
+                          style={{
+                            width: 100,
+                            height: 100,
+                            objectFit: 'cover',
+                            borderRadius: 4
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            backgroundColor: 'rgba(255,255,255,0.7)'
+                          }}
+                          onClick={() => handleRemoveImage(o.id, img.id)}
+                        >
+                          <DeleteIcon fontSize="small" color="error" />
+                        </IconButton>
+                      </Box>
+                    ))}
+
+                  </Box>
                 </Box>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleAddImage(o.id, e)}
+                  style={{ display: "none" }}
+                  id={`image-upload-${o.id}`}
+                />
+                <label htmlFor={`image-upload-${o.id}`}>
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<AddPhotoAlternateIcon />}
+                  >
+                    Adicionar Imagem
+                  </Button>
+                </label>
                 <Box>
                   <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
                     Editar
@@ -726,7 +830,7 @@ function RegistroProblemas() {
           />
         </div>
       </div>
-                 
+
     </Container>
   )
 }
@@ -734,6 +838,5 @@ function RegistroProblemas() {
 
 
 export default RegistroProblemas;
-        
-       
-     
+
+

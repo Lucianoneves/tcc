@@ -9,7 +9,7 @@ import { db, storage } from "../services/firebaseConnection";  // Importando sto
 import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
 import { getAuth } from "firebase/auth";
-import MapaOcorrencias from './MapaOcorrencias';
+import MapaOcorrencias from './MapaOcorrencias'; //
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;

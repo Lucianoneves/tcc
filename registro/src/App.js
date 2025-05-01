@@ -25,6 +25,7 @@ import OcorrenciasMes from './pages/ocorrenciasMes';
 
 
 
+
 function App() {
     return (
         <Router>
@@ -43,6 +44,7 @@ function App() {
                     <Route path="/ocorrencias" element={<Ocorrencias />} />
                     <Route path="/adminPage" element={<AdminPage />} />
                     <Route path="/MapaOcorrencias" element={<MapaOcorrencias />} /> 
+              
                 </Routes>
             </AuthProvider>
         </Router>
