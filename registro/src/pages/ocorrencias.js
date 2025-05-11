@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem, Box, IconButton } from '@mui/material';
+import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, Divider, MenuItem, Box, IconButton } from '@mui/material'; // Importando componentes do Material-UI
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
 import Chip from '@mui/material/Chip';
@@ -368,120 +368,126 @@ const Ocorrencias = () => {
 
             <List>
                 {ocorrencias.map((ocorrencia) => (
-                    <ListItem key={ocorrencia.id}>
-                        <Checkbox
-                            checked={selecionadas.includes(ocorrencia.id)}
-                            onChange={() => handleCheckboxChange(ocorrencia.id)}
-                        />
+                    <React.Fragment key={ocorrencia.id}>
+                        <ListItem>
+                            <Checkbox
+                                checked={selecionadas.includes(ocorrencia.id)}
+                                onChange={() => handleCheckboxChange(ocorrencia.id)}
+                            />
 
-                        {editandoOcorrencia === ocorrencia.id ? (
-                            <>
-                                <TextField
-                                    value={descricaoEditada}
-                                    onChange={(e) => setdescricaoEditada(e.target.value)}
-                                    fullWidth
-                                    label="Descrição"
-                                    margin="normal"
-                                />
-                                <TextField
-                                    value={tarefaEditada}
-                                    onChange={(e) => setTarefaEditada(e.target.value)}
-                                    fullWidth
-                                    label="Tarefa Executada"
-                                    margin="normal"
-                                />
-                                <TextField
-                                    type="datetime-local"
-                                    value={dataTarefaEditada || new Date().toISOString().slice(0, 16)}
-                                    onChange={(e) => setDataTarefaEditada(e.target.value)}
-                                />
-                                <TextField
-                                    value={statusEditado}
-                                    onChange={(e) => setStatusEditado(e.target.value)}
-                                    fullWidth
-                                    label="Status"
-                                    select
-                                    margin="normal"
-                                >
-                                    <MenuItem value="Pendente">Pendente</MenuItem>
-                                    <MenuItem value="Em Andamento">Em Andamento</MenuItem>
-                                    <MenuItem value="Concluído">Concluído</MenuItem>
-                                </TextField>
-                                <Button
-                                    onClick={() => handleSalvarEdicao(ocorrencia.id)}
-                                    variant="contained"
-                                    color="primary"
-                                    style={{ marginTop: '16px' }}
-                                >
-                                    Salvar
-                                </Button>
-                                <Button
-                                    onClick={() => setEditandoOcorrencia(null)}
-                                    variant="outlined"
-                                    color="secondary"
-                                    style={{ marginTop: '16px', marginLeft: '8px' }}
-                                >
-                                    Cancelar
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <ListItemText
-                                    primary={ocorrencia.descricao}
-                                    secondary={
-                                        <>
-                                            <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
-                                            <Typography variant="body2">Enviado por: {ocorrencia.nomeUsuario}</Typography>
-                                            <Typography variant="body2">
-                                                <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
-                                            </Typography>
-                                            <Typography variant="body2">
-                                                <strong>Endereço:</strong> {ocorrencia.endereco || 'Não selecionada'}
-                                            </Typography>
-                                            <Typography variant="body2">
-                                                <strong>Descrição da Ocorrência do usuário:</strong> {ocorrencia.observacoes || 'Não selecionada'}
-                                            </Typography>
-                                            <Typography variant="body2">
-                                                <strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não selecionada'}
-                                            </Typography>
-                                            <Typography variant="body2">
-                                                <strong>Data da execução:</strong>
-                                                {ocorrencia.dataTarefaExecutada ?
-                                                    new Date(ocorrencia.dataTarefaExecutada).toLocaleString('pt-BR') :
-                                                    new Date().toLocaleString('pt-BR')}
+                            {editandoOcorrencia === ocorrencia.id ? (
+                                <>
+                                    <TextField
+                                        value={descricaoEditada}
+                                        onChange={(e) => setdescricaoEditada(e.target.value)}
+                                        fullWidth
+                                        label="Descrição"
+                                        margin="normal"
+                                    />
+                                    <TextField
+                                        value={tarefaEditada}
+                                        onChange={(e) => setTarefaEditada(e.target.value)}
+                                        fullWidth
+                                        label="Tarefa Executada"
+                                        margin="normal"
+                                    />
+                                    <TextField
+                                        type="datetime-local"
+                                        value={dataTarefaEditada || new Date().toISOString().slice(0, 16)}
+                                        onChange={(e) => setDataTarefaEditada(e.target.value)}
+                                    />
+                                    <TextField
+                                        value={statusEditado}
+                                        onChange={(e) => setStatusEditado(e.target.value)}
+                                        fullWidth
+                                        label="Status"
+                                        select
+                                        margin="normal"
+                                    >
+                                        <MenuItem value="Pendente">Pendente</MenuItem>
+                                        <MenuItem value="Em Andamento">Em Andamento</MenuItem>
+                                        <MenuItem value="Concluído">Concluído</MenuItem>
+                                    </TextField>
+                                    <Button
+                                        onClick={() => handleSalvarEdicao(ocorrencia.id)}
+                                        variant="contained"
+                                        color="primary"
+                                        style={{ marginTop: '16px' }}
+                                    >
+                                        Salvar
+                                    </Button>
+                                    <Button
+                                        onClick={() => setEditandoOcorrencia(null)}
+                                        variant="outlined"
+                                        color="secondary"
+                                        style={{ marginTop: '16px', marginLeft: '8px' }}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <ListItemText
 
-                                            </Typography>
+                                        primary={ocorrencia.descricao}
+                                        secondary={
+                                            <>
+                                                <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
+                                                <Typography variant="body2">Enviado por: {ocorrencia.nomeUsuario}</Typography>
+                                                <Typography variant="body2">
+                                                    <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    <strong>Endereço:</strong> {ocorrencia.endereco || 'Não selecionada'}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    <strong>Descrição da Ocorrência do usuário:</strong> {ocorrencia.observacoes || 'Não selecionada'}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    <strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não selecionada'}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    <strong>Data da execução:</strong>
+                                                    {ocorrencia.dataTarefaExecutada ?
+                                                        new Date(ocorrencia.dataTarefaExecutada).toLocaleString('pt-BR') :
+                                                        new Date().toLocaleString('pt-BR')}
+                                                </Typography>
 
-                                            <Typography variant='body2'><strong>Imagens:</strong>       </Typography>
+                                                <Typography variant='body2'><strong>Imagens:</strong> </Typography>
 
 
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                                                {imagensPorOcorrencia[ocorrencia.id]?.map((img, index) => (
-                                                    <Box key={index} sx={{ width: 100, height: 100 }}>
-                                                        <img
-                                                            src={img.url}
-                                                            alt={`Imagem ${index + 1}`}
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                                                        />
-                                                    </Box>
-                                                ))}
-                                            </Box>
-                                        </>
-                                    }
-                                />
-                                <Button onClick={() => {
-                                    setdescricaoEditada(ocorrencia.descricao);
-                                    setTarefaEditada(ocorrencia.tarefaEditada || '');
-                                    setStatusEditado(ocorrencia.status || 'Pendente');
-                                    setEditandoOcorrencia(ocorrencia.id);
-                                    setDataTarefaEditada(ocorrencia.dataTarefaExecutada || '');
-                                    setImages(ocorrencia.images || '');
-                                }}>
-                                    Editar
-                                </Button>
-                            </>
-                        )}
-                    </ListItem>
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                                    {imagensPorOcorrencia[ocorrencia.id]?.map((img, index) => (
+                                                        <Box key={index} sx={{ width: 100, height: 100 }}>
+                                                            <img
+                                                                src={img.url}
+                                                                alt={`Imagem ${index + 1}`}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                                                            />
+                                                          
+                                                        </Box>
+
+                                                    ))}
+                                                </Box>
+                                            </>
+                                        }
+                                    />
+                                    <Button onClick={() => {
+                                        setdescricaoEditada(ocorrencia.descricao);
+                                        setTarefaEditada(ocorrencia.tarefaEditada || '');
+                                        setStatusEditado(ocorrencia.status || 'Pendente');
+                                        setEditandoOcorrencia(ocorrencia.id);
+                                        setDataTarefaEditada(ocorrencia.dataTarefaExecutada || '');
+                                        setImages(ocorrencia.images || '');
+                                    }}>
+                                        Editar
+                                    </Button>
+                                </>
+                            )}
+                        </ListItem>
+                         {/* Divider após cada ocorrência */}
+                        <Divider sx={{ my: 2, borderColor: 'grey.700' }} />
+                </React.Fragment> // Adiciona um divisor entre as ocorrências
                 ))}
             </List>
 
@@ -507,4 +513,4 @@ const Ocorrencias = () => {
     );
 };
 
-export default Ocorrencias;
+export default Ocorrencias; // Exporta o componente Ocorrencias

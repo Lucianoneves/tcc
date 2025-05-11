@@ -11,8 +11,6 @@ function CadastrarUsuario() {
   const [cpf, setCpf] = useState('');
   const [endereco, setEndereco] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [fotoPerfil, setFotoPerfil] = useState(null);
-  const [fotoPreview, setFotoPreview] = useState(null);
   const [email, setEmail] = useState('');
   const [confirmarEmail, setConfirmarEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -57,7 +55,7 @@ function CadastrarUsuario() {
 
     try {
       // Passa a URL da foto para a função de cadastro
-      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone, fotoPerfil);
+      await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone);
   
       resetForm();
       navigate('/perfil');
@@ -71,46 +69,14 @@ function CadastrarUsuario() {
     setNome('');
     setCpf('');
     setEndereco('');
-    setTelefone(''); 
-    setFotoPerfil(null);
-    setFotoPreview(null);
+    setTelefone('');     
     setEmail('');
     setConfirmarEmail('');
     setSenha('');
     setConfirmarSenha('');
   };
 
-  const handleFotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
-      try {
-        // Criar referência no Storage
-        const storageRef = ref(storage, `profilePhotos/${Date.now()}_${file.name}`);
-        
-        // Fazer upload da imagem
-        const uploadTask = await uploadBytes(storageRef, file);
-        
-        // Obter a URL de download
-        const downloadURL = await getDownloadURL(uploadTask.ref);
-        
-        // Atualizar o estado com a URL da imagem
-        setFotoPerfil(downloadURL);
-        setFotoPreview(downloadURL);
-        
-        toast.success("Foto de perfil carregada com sucesso!");
-      } catch (error) {
-        console.error("Erro ao fazer upload da imagem:", error);
-        toast.error("Erro ao carregar a foto de perfil.");
-      }
-    } else {
-      toast.error("Por favor, selecione uma imagem válida.");
-    }
-  };
-
-  
-
-
-
+ 
 
 
   return (
@@ -192,31 +158,8 @@ function CadastrarUsuario() {
         required
       />
 
-      <Button
-        variant="outlined"
-        component="label"
-        fullWidth
-        sx={{ marginY: 2 }}
-      >
-        Upload Foto de Perfil
-        <input
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={handleFotoChange}
-        />
-      </Button>
-      {fotoPreview && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginBottom: 2,
-          }}
-        >
-          <Avatar src={fotoPreview} sx={{ width: 150, height: 150 }} />
-        </Box>
-      )}
+     
+    
       <TextField
         fullWidth
         margin="normal"

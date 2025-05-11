@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box,borderColor, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material'; // Importando componentes do Material-UI
+import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, borderColor, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material'; // Importando componentes do Material-UI
 import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
@@ -32,7 +32,7 @@ function RegistroProblemas() {
   const [endereco, setEndereco] = useState('');
   const [resultadoEndereco, setResultadoEndereco] = useState('');
   const [melhoria, setMelhoria] = useState('');
-  const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({}); 
+  const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({});
   const [imagem, setImagem] = useState(null);
   const [imagens, setImagens] = useState([]);
   const { user, logout, handleReg } = useContext(AuthContext);
@@ -311,11 +311,11 @@ function RegistroProblemas() {
 
   const handleRemoveImage = async (ocorrenciaId, imageId) => {
     try {
-       // Adiciona confirmação antes de remover
-    const confirmacao = window.confirm('Tem certeza que deseja remover esta imagem?');
-    
-    if (!confirmacao) return; // Se o usuário cancelar, não prossegue
-    
+      // Adiciona confirmação antes de remover
+      const confirmacao = window.confirm('Tem certeza que deseja remover esta imagem?');
+
+      if (!confirmacao) return; // Se o usuário cancelar, não prossegue
+
       await deleteImage(imageId);
 
       setImagensPorOcorrencia(prev => ({
@@ -638,138 +638,138 @@ function RegistroProblemas() {
 
 
 
- return (
-  <Container maxWidth="sm">
-    <Box sx={{ mb: 3 }}>
-      <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
-        Sair
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => navigate('/ocorrenciasMes')}
-        fullWidth
-      >
-        Ver Ocorrências do Mês
-      </Button>
-    </Box>
+  return (
+    <Container maxWidth="sm">
+      <Box sx={{ mb: 3 }}>
+        <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
+          Sair
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => navigate('/ocorrenciasMes')}
+          fullWidth
+        >
+          Ver Ocorrências do Mês
+        </Button>
+      </Box>
 
-    <Paper sx={{ padding: 3, mb: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Registrar Ocorrências da sua Região
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        Bem-vindo, {user.nome}
-      </Typography>
+      <Paper sx={{ padding: 3, mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Registrar Ocorrências da sua Região
+        </Typography>
+        <Typography variant="subtitle1" gutterBottom>
+          Bem-vindo, {user.nome}
+        </Typography>
 
-      <List>
-        {ocorrencias.map((o, index) => (
-          <React.Fragment key={o.id}>
-            <ListItem>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                <Box>
-                  <Typography variant="body2">
-                    <strong>Ocorrência:</strong> {o.descricao}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Descrição da Ocorrência:</strong> {o.observacoes}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Data da Ocorrência:</strong> {o.data}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Endereço:</strong> {o.endereco}
-                  </Typography>
-                  <Typography variant="body2"></Typography>
-                  <strong>Tarefa executada:</strong> {o.tarefaEditada || 'Não selecionada'}
-                  <Typography variant="body2"></Typography>
+        <List>
+          {ocorrencias.map((o, index) => (
+            <React.Fragment key={o.id}>
+              <ListItem>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <Box>
+                    <Typography variant="body2">
+                      <strong>Ocorrência:</strong> {o.descricao}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Descrição da Ocorrência:</strong> {o.observacoes}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Data da Ocorrência:</strong> {o.data}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Endereço:</strong> {o.endereco}
+                    </Typography>
+                    <Typography variant="body2"></Typography>
+                    <strong>Tarefa executada:</strong> {o.tarefaEditada || 'Não selecionada'}
+                    <Typography variant="body2"></Typography>
 
-                  <Typography variant="body2">
-                    <strong>Data da execução:</strong>
-                    {o.dataTarefaExecutada ?
-                      new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
-                      'Data não disponível'}
-                  </Typography>
+                    <Typography variant="body2">
+                      <strong>Data da execução:</strong>
+                      {o.dataTarefaExecutada ?
+                        new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
+                        'Data não disponível'}
+                    </Typography>
 
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: (() => {
-                        const status = (o?.status || 'Pendente').trim().toLowerCase();
-                        if (status === 'pendente') return 'red';
-                        if (status === 'concluído') return 'green';
-                        if (status === 'em análise') return 'orange';
-                        return 'black';
-                      })(),
-                    }}
-                  >
-                    Status: {o?.status || 'Pendente'}
-                  </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: (() => {
+                          const status = (o?.status || 'Pendente').trim().toLowerCase();
+                          if (status === 'pendente') return 'red';
+                          if (status === 'concluído') return 'green';
+                          if (status === 'em análise') return 'orange';
+                          return 'black';
+                        })(),
+                      }}
+                    >
+                      Status: {o?.status || 'Pendente'}
+                    </Typography>
 
-                  <Typography variant="body2">
-                    <strong>Imagens:</strong>
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    {imagensPorOcorrencia[o.id]?.map((img) => (
-                      <Box key={img.id} position="relative" sx={{ m: 1 }}>
-                        <img
-                          src={img.url}
-                          alt={`Imagem da ocorrência ${o.id}`}
-                          style={{
-                            width: 100,
-                            height: 100,
-                            objectFit: 'cover',
-                            borderRadius: 4
-                          }}
-                        />
-                        <IconButton
-                          size="small"
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            backgroundColor: 'rgba(255,255,255,0.7)'
-                          }}
-                          onClick={() => handleRemoveImage(o.id, img.id)}
-                        >
-                          <DeleteIcon fontSize="small" color="error" />
-                        </IconButton>
-                      </Box>
-                    ))}
+                    <Typography variant="body2">
+                      <strong>Imagens:</strong>
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {imagensPorOcorrencia[o.id]?.map((img) => (
+                        <Box key={img.id} position="relative" sx={{ m: 1 }}>
+                          <img
+                            src={img.url}
+                            alt={`Imagem da ocorrência ${o.id}`}
+                            style={{
+                              width: 100,
+                              height: 100,
+                              objectFit: 'cover',
+                              borderRadius: 4
+                            }}
+                          />
+                          <IconButton
+                            size="small"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              backgroundColor: 'rgba(255,255,255,0.7)'
+                            }}
+                            onClick={() => handleRemoveImage(o.id, img.id)}
+                          >
+                            <DeleteIcon fontSize="small" color="error" />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleAddImage(o.id, e)}
+                    style={{ display: "none" }}
+                    id={`image-upload-${o.id}`}
+                  />
+                  <label htmlFor={`image-upload-${o.id}`}>
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<AddPhotoAlternateIcon />}
+                    >
+                      Adicionar Imagem
+                    </Button>
+                  </label>
+                  <Box>
+                    <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
+                      Editar
+                    </Button>
+                    <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
+                      Salvar
+                    </Button>
                   </Box>
                 </Box>
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleAddImage(o.id, e)}
-                  style={{ display: "none" }}
-                  id={`image-upload-${o.id}`}
-                />
-                <label htmlFor={`image-upload-${o.id}`}>
-                  <Button
-                    variant="outlined"
-                    component="span"
-                    startIcon={<AddPhotoAlternateIcon />}
-                  >
-                    Adicionar Imagem
-                  </Button>
-                </label>
-                <Box>
-                  <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
-                    Editar
-                  </Button>
-                  <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
-                    Salvar
-                  </Button>
-                </Box>
-              </Box>
-            </ListItem>
-            {index < ocorrencias.length - 1 && <Divider sx={{ my: 2,borderColor: 'grey.700' }} />}
-          </React.Fragment>
-        ))}
-      </List>
-    </Paper>
+              </ListItem>
+              {index < ocorrencias.length - 1 && <Divider sx={{ my: 2, borderColor: 'grey.700' }} />}
+            </React.Fragment> // Adiciona um divisor entre as ocorrências
+          ))}
+        </List>
+      </Paper>
 
       <Box mt={4}>
         <Typography variant="h6">Nova Ocorrência</Typography>

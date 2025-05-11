@@ -33,7 +33,7 @@ function AuthProvider({ children }) {
   // Carregar usuário autenticado no início
   useEffect(() => {
     async function loadUser() {
-      const storageUser = localStorage.getItem("@tickesPRO");
+      const storageUser = localStorage.getItem("@tickesPRO"); // Verifica se há um usuário armazenado no localStorage
 
       if (storageUser) {
         setUser(JSON.parse(storageUser));
@@ -42,7 +42,7 @@ function AuthProvider({ children }) {
     }
     loadUser();
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => { // Listener para mudanças de autenticação
       if (currentUser) {
         const uid = currentUser.uid;
         const docRef = doc(db, "users", uid);
@@ -78,7 +78,7 @@ function AuthProvider({ children }) {
     setLoadingAuth(true);
 
     try {
-      const value = await signInWithEmailAndPassword(auth, email, senha);
+      const value = await signInWithEmailAndPassword(auth, email, senha); // Autentica o usuário
       const uid = value.user.uid;
 
       const docRef = doc(db, "users", uid);
@@ -147,8 +147,7 @@ function AuthProvider({ children }) {
       data: new Date(),
       usuarioId: user.uid,
       nomeUsuario: user.nome,
-      endereco: endereco,
-    
+      endereco: endereco,   
       
       
      
@@ -169,7 +168,7 @@ function AuthProvider({ children }) {
     setLoadingAuth(true);
 
     try {
-      const value = await createUserWithEmailAndPassword(auth, email, senha);
+      const value = await createUserWithEmailAndPassword(auth, email, senha); // Cria o usuário no Firebase Authentication  
       const uid = value.user.uid;
 
       const userData = {
@@ -207,9 +206,9 @@ function AuthProvider({ children }) {
   }
 
   // Logout
-  async function logout() {
+  async function logout() { // Logout do usuário
     await signOut(auth);
-    localStorage.removeItem("@tickesPRO");
+    localStorage.removeItem("@tickesPRO"); // Limpa o localStorage
     setUser(null);
     toast.success("Você foi desconectado.");
   }
@@ -263,9 +262,9 @@ async function excluirPerfil() {
   );
 }
 
-export default AuthProvider;
+export default AuthProvider; // Componente AuthProvider
 
 
 
 
-//Componente que centraliza  toda a logica  de autenticação  e gerenciamento de usuarios o mesmo atentifica  Usuarios na parte de login,vadastro, logout    gerencimanto de senhas na parte  de redefinirsenha   naparte de gerenciamentode perfil  excluir Perfil  e naparte de RegistroOcorrencias  //
+//Componente que centraliza  toda a logica  de autenticação  e gerenciamento de usuarios o mesmo autentifica  Usuarios na parte de login, cadastro, logout    gerencimanto de senhas na parte  de redefinirSenha   na parte de gerenciamento de perfil  excluir Perfil  e na parte de registroOcorrencias  //
