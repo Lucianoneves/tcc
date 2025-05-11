@@ -1,6 +1,6 @@
 const DB_NAME = 'MyImageDB';
 const DB_VERSION = 3; // Incrementado a versão
-const STORE_NAME = 'images';
+const STORE_NAME = 'images'; 
 
 const openDB = () => {   // Criação do banco de dados e da storte de imagens
   // Verifica se o IndexedDB está disponível no navegador

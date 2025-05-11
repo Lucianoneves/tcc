@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem }
-    from '@mui/material';
+import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, MenuItem, Box, IconButton } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
 import Chip from '@mui/material/Chip';
-import { db, storage } from "../services/firebaseConnection";  // Importando storage
+import DeleteIcon from '@mui/icons-material/Delete';
+import { db, storage } from "../services/firebaseConnection";
 import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
 import { getAuth } from "firebase/auth";
-import MapaOcorrencias from './MapaOcorrencias'; //
+import MapaOcorrencias from './MapaOcorrencias';
+import { saveImage, getImages, deleteImage } from "./imageDB";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -27,9 +29,9 @@ const StatusSpan = styled('span')(({ status }) => ({
 
 const Ocorrencias = () => {
     const navigate = useNavigate();
-    const [mostrarMapa, setMostrarMapa] = useState(false); // Estado para controlar a exibição 
+    const [mostrarMapa, setMostrarMapa] = useState(false);
     const [ocorrencias, setOcorrencias] = useState([]);
-    const [descricaoVisible, setDescricaoVisible] = useState(false); // Controle da visibilidade do campo
+    const [descricaoVisible, setDescricaoVisible] = useState(false);
     const [ocorrenciaExecutada, setOcorrenciaExecutada] = useState('');
     const [dataTarefaEditada, setDataTarefaEditada] = useState('');
     const [descricaoEditada, setdescricaoEditada] = useState('');
@@ -40,117 +42,104 @@ const Ocorrencias = () => {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('success');
     const [snackbarOpen, setSnackbarOpen] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null); // Estado para o arquivo selecionado
+    const [selectedFile, setSelectedFile] = useState(null);
     const auth = getAuth();
-    const user = auth.currentUser;  // Obtém o usuário logado
+    const user = auth.currentUser;
     const [observacoes, setObservacoes] = useState('');
     const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
-    const [isAdmin, setIsAdmin] = useState(false);  // Estado para verificar se o usuário é admin
+    const [isAdmin, setIsAdmin] = useState(false);
     const [adminNome, setAdminNome] = useState('');
     const [usuarios, setUsuarios] = useState();
-    const [userNome, setUserNome] = useState('');  // Novo estado para armazenar o nome do usuário
+    const [userNome, setUserNome] = useState('');
+    const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({}); // Estado para armazenar as imagens por ocorrência    
+    const [images, setImages] = useState('');
+    const [o, setO] = useState({});
+    const [imagem, setImagem] = useState(null);
+    const [imagemURL, setImagemURL] = useState(null);
+    const { imagens, setImagens } = useState(null);
+    const [ocorrencia, setOcorrencia] = useState(null);
+    const [img, setImg] = useState(null);
+    const [imgURL, setImgURL] = useState(null);
 
 
 
-    function Ocorrencias() {     
 
-        return (
-            <div>
-                <button onClick={() => setMostrarMapa(!mostrarMapa)}>
-                    {mostrarMapa ? 'Ocultar Mapa' : 'Mostrar Mapa'}
-                </button>
-
-                {mostrarMapa && <MapaOcorrencias />}
-
-                {/* Restante do conteúdo */}
-            </div>
-        );
-    }
-
-    // Função para navegar para a página do mapa
     const handleNavigateToMap = () => {
-        navigate('/MapaOcorrencias'); // Substitua pela rota correta do seu mapa
+        navigate('/MapaOcorrencias');
     };
-
-
-
 
     useEffect(() => {
         const nome = localStorage.getItem('adminNome');
         if (nome) {
             setAdminNome(nome);
         } else {
-            navigate('/login'); // Redireciona se não estiver logado
+            navigate('/login');
         }
 
-        // Verifica se é admin
         const isAdmin = localStorage.getItem('isAdmin') === 'true';
         if (!isAdmin) {
             navigate('/login');
         }
     }, [navigate]);
 
-
     useEffect(() => {
-        const user = getAuth().currentUser; // Obtém o usuário atual
-        if (!user) return; // Se o usuário não estiver logado, não faz nada
+        const user = getAuth().currentUser;
+        if (!user) return;
 
         const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
             const ocorrenciasAtualizadas = snapshot.docs.map((doc) => {
                 const ocorrenciaData = doc.data();
-
-
                 return {
-                    id: doc.id, // Inclui o ID do documento
+                    id: doc.id,
                     ...ocorrenciaData,
                     nomeUsuario:
                         ocorrenciaData.usuarioId === user.uid
                             ? user.displayName || "Usuário sem nome"
-                            : "Usuário desconhecido", // Nome do usuário ou um padrão
+                            : "Usuário desconhecido",
                 };
             });
-            setOcorrencias(ocorrenciasAtualizadas); // Atualiza o estado
-        }
-        );
+            setOcorrencias(ocorrenciasAtualizadas);
+        });
 
-        return () => unsubscribe(); // Limpa o listener ao desmontar o componente
+        return () => unsubscribe();
     }, []);
-
-
-
 
     useEffect(() => {
         const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
         if (ocorrenciasSalvas && Array.isArray(usuarios) && usuarios.length > 0) {
             const ocorrencias = JSON.parse(ocorrenciasSalvas);
-
             const ocorrenciasComUsuarios = ocorrencias.map((ocorrencia) => {
                 const usuarioEncontrado = usuarios.find((u) => u.id === ocorrencia.usuarioId);
                 return {
                     ...ocorrencia,
                     nomeUsuario: ocorrencia.nomeUsuario || "Usuário desconhecido",
                     data: new Date().toISOString(),
-
                 };
             });
-
             setOcorrencias(ocorrenciasComUsuarios);
         }
-    }, [usuarios]); // Execute sempre que `usuarios` for atualizado
+    }, [usuarios]);
 
     useEffect(() => {
         if (ocorrencias.length > 0) {
             localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
         }
-    }, [ocorrencias]); // Salvar as ocorrências no localStorage sempre que o estado mudar
+    }, [ocorrencias]);
 
     useEffect(() => {
-        console.log("Usuários disponíveis:", usuarios);
-        console.log("Ocorrências no localStorage:", localStorage.getItem('ocorrencias'));
-    }, [usuarios, ocorrencias]); // Logs para depuração
+        const loadImages = async () => {
+            const loadedImages = {};
+            for (const o of ocorrencias) {
+                const imgs = await getImages(o.id); // Certifique-se que esta função existe
+                loadedImages[o.id] = imgs;
+            }
+            setImagensPorOcorrencia(loadedImages);
+        };
 
-
-
+        if (ocorrencias.length > 0) {
+            loadImages();
+        }
+    }, [ocorrencias]);
 
 
 
@@ -160,13 +149,15 @@ const Ocorrencias = () => {
                 descricao: descricaoEditada,
                 status: statusEditado,
                 tarefaEditada: tarefaEditada,
-                dataTarefaExecutada: new Date().toISOString(), // Atualiza para o momento da edição
+                images: images,
+                dataTarefaExecutada: new Date().toISOString(),
             });
 
             setOcorrencias(prev => prev.map(ocorrencia =>
                 ocorrencia.id === id ? {
                     ...ocorrencia,
                     descricao: descricaoEditada,
+                    images: images,
                     status: statusEditado,
                     tarefaEditada: tarefaEditada,
                     dataTarefaExecutada: new Date().toISOString(),
@@ -188,20 +179,19 @@ const Ocorrencias = () => {
         if (ocorrenciaExecutada.trim()) {
             const nova = {
                 descricao: ocorrenciaExecutada,
-                dataTarefaExecutada: new Date().toISOString(), // Data/horário atual
+                dataTarefaExecutada: new Date().toISOString(),
                 status: 'Pendente',
                 data: new Date().toISOString(),
                 usuarioId: user.uid,
                 nomeUsuario: user.displayName || "Usuário sem nome",
                 localizacao: 'Rua XYZ, Bairro ABC',
-                imagens: [],
                 observacoes,
                 tarefaEditada: tarefaEditada,
+                images: images,
             };
 
             try {
                 const docRef = await addDoc(collection(db, "ocorrencias"), nova);
-                console.log("Ocorrência registrada com ID:", docRef.id);
                 setOcorrencias((prev) => [...prev, { id: docRef.id, ...nova }]);
                 setOcorrenciaExecutada('');
                 setSnackbarMessage('Ocorrência adicionada com sucesso!');
@@ -219,10 +209,6 @@ const Ocorrencias = () => {
         }
     };
 
-
-
-
-
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
             const ocorrenciasAtualizadas = snapshot.docs.map((doc) => ({
@@ -233,55 +219,26 @@ const Ocorrencias = () => {
                 status: doc.data().status,
                 observacoes: doc.data().observacoes,
                 data: doc.data().data,
-                usuarioId: doc.data().usuarioId, // Incluindo usuarioId
-                nomeUsuario: doc.data().nomeUsuario, // Incluindo nomeUsuario
-                endereco: doc.data().endereco, // Incluindo localizacao
-                imagens: doc.data().imagens || [] // Incluindo imagens            
+                usuarioId: doc.data().usuarioId,
+                nomeUsuario: doc.data().nomeUsuario,
+                endereco: doc.data().endereco,
+                media: doc.data().media || []
             }));
             setOcorrencias(ocorrenciasAtualizadas);
         });
 
-        return () => unsubscribe(); // Desinscrever ao desmontar o componente
+        return () => unsubscribe();
     }, []);
 
-
-    async function adicionarOcorrencia(ocorrencia) {
-        try {
-            const docRef = await addDoc(collection(db, "ocorrencias"), {
-                descricao: ocorrencia.descricao,
-                tarefaEditada: ocorrencia.tarefaEditada,
-                dataTarefaExecutada: ocorrencia.dataTarefaEditada || new Date().toISOString(), // Usa a data atual se não for informada
-                status: ocorrencia.status,
-                observacoes: ocorrencia.observacoes,
-                data: ocorrencia.data,
-                usuarioId: ocorrencia.usuarioId,
-                nomeUsuario: ocorrencia.nomeUsuario,
-                endereco: ocorrencia.endereco,
-                imagens: ocorrencia.imagens || []
-            });
-
-            console.log("Ocorrência registrada com ID:", docRef.id);
-        } catch (error) {
-            console.error("Erro ao adicionar ocorrência:", error);
-        }
-    }
-
-
-
     const handleSubmit = () => {
-        // Incluir a data na ocorrência ao enviar
         const ocorrenciasComData = ocorrencias.filter((ocorrencia) =>
             selecionadas.includes(ocorrencia.id)
-
         ).map((ocorrencia) => ({
             ...ocorrencia,
-            data: ocorrencia // Adicionando a data da ocorrência
+            data: ocorrencia
         }));
 
-        console.log("Ocorrência Executada: ", ocorrenciaExecutada);
-        setDescricaoVisible(false); // Esconde o campo após enviar
-
-        console.log('Ocorrências enviadas:', ocorrenciasComData);
+        setDescricaoVisible(false);
         setSnackbarMessage('Ocorrências enviadas com sucesso!');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
@@ -305,50 +262,13 @@ const Ocorrencias = () => {
 
     const handleSair = () => {
         localStorage.removeItem('isAdmin');
-        navigate('/login'); // Redireciona para a página de login
-    };
-
-
-
-
-
-    // Adicionar fotos e videos
-    const handleFileUpload = async (event, id) => {
-        const file = event.target.files[0]; // Pega o arquivo selecionado
-        if (!file) return;
-
-        const fileRef = ref(storage, `ocorrencias/${id}/${file.name}`);
-        try {
-            // Fazer o upload do arquivo para o Firebase Storage
-            await uploadBytes(fileRef, file);
-            const fileURL = await getDownloadURL(fileRef);
-
-            // Atualizar a ocorrência com o URL do arquivo carregado
-            setOcorrencias((prev) =>
-                prev.map((ocorrencia) =>
-                    ocorrencia.id === id
-                        ? { ...ocorrencia, media: [...(ocorrencia.media || []), fileURL] }
-                        : ocorrencia
-                )
-            );
-            setSnackbarMessage('Arquivo carregado com sucesso!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
-        } catch (error) {
-            console.error("Erro ao carregar o arquivo: ", error);
-            setSnackbarMessage('Erro ao carregar o arquivo.');
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
-        }
+        navigate('/login');
     };
 
     const handleRemoverArquivo = async (id, fileURL) => {
         const fileRef = ref(storage, fileURL);
         try {
-            // Remover o arquivo do Firebase Storage
             await deleteObject(fileRef);
-
-            // Atualizar a lista de ocorrências removendo o arquivo da URL
             setOcorrencias((prev) =>
                 prev.map((ocorrencia) =>
                     ocorrencia.id === id
@@ -367,14 +287,72 @@ const Ocorrencias = () => {
         }
     };
 
+    const handleAddImage = async (ocorrenciaId, event) => {
+        if (!event.target.files || event.target.files.length === 0) return;
 
+        const file = event.target.files[0];
+        if (!file.type.match('image.*')) {
+            toast.error('Apenas arquivos de imagem são permitidos (JPEG, PNG, etc.)');
+            return;
+        }
+
+        try {
+            // 1. Faz upload para o Firebase Storage
+            const storageRef = ref(storage, `ocorrencias/${ocorrenciaId}/${file.name}`);
+            await uploadBytes(storageRef, file);
+
+            // 2. Obtém a URL da imagem
+            const imageURL = await getDownloadURL(storageRef);
+
+            // 3. Atualiza o estado para mostrar a imagem
+            setImagensPorOcorrencia(prev => ({
+                ...prev,
+                [ocorrenciaId]: [...(prev[ocorrenciaId] || []), { url: imageURL }]
+            }));
+
+            toast.success('Imagem enviada com sucesso!');
+        } catch (error) {
+            console.error("Erro ao enviar imagem:", error);
+            toast.error('Falha no upload. Tente novamente.');
+        }
+
+
+        return (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                {ocorrencia.imagens.map((mediaURL, index) => (
+                    <Box key={index} sx={{ position: 'relative' }}>
+                        {mediaURL.endsWith('.mp4') ? (
+                            <video width="150" controls>
+                                <source src={mediaURL} type="video/mp4" />
+                            </video>
+                        ) : (
+                            <img
+                                src={imgURL}
+                                alt={`Imagem ${index + 1}`}
+                                style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 4 }}
+                            />
+                        )}
+                        <IconButton
+                            size="small"
+                            sx={{
+                                position: 'absolute',
+                                top: 0,
+                                right: 0,
+                                backgroundColor: 'rgba(255,255,255,0.7)'
+                            }}
+                            onClick={() => handleRemoverArquivo(ocorrencia.id, img.url)}
+                        >
+                            <DeleteIcon fontSize="small" color="error" />
+                        </IconButton>
+                    </Box>
+                ))}
+            </Box>
+        );
+    };
 
     return (
-
         <Container>
             <Typography variant="h4" gutterBottom>Ocorrências Recebidas pelos Usuários</Typography>
-
-           
 
             <Button onClick={handleSelectAll} variant="outlined" color="primary">
                 Selecionar Todas
@@ -383,13 +361,10 @@ const Ocorrencias = () => {
                 Sair
             </Button>
 
-            
-            {/* Exibe o NOME do admin logado */}
             <Typography variant="subtitle1" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Logado como: <strong>{adminNome}</strong>
                 <Chip label="Administrador" color="primary" size="small" />
             </Typography>
-
 
             <List>
                 {ocorrencias.map((ocorrencia) => (
@@ -419,9 +394,7 @@ const Ocorrencias = () => {
                                     type="datetime-local"
                                     value={dataTarefaEditada || new Date().toISOString().slice(0, 16)}
                                     onChange={(e) => setDataTarefaEditada(e.target.value)}
-                                // ... outras props
                                 />
-
                                 <TextField
                                     value={statusEditado}
                                     onChange={(e) => setStatusEditado(e.target.value)}
@@ -430,18 +403,6 @@ const Ocorrencias = () => {
                                     select
                                     margin="normal"
                                 >
-
-                                    <TextField
-                                        type="datetime-local"
-                                        value={dataTarefaEditada}
-                                        onChange={(e) => setDataTarefaEditada(e.target.value)}
-                                        fullWidth
-                                        label="Data da Tarefa Executada"
-                                        margin="normal"
-                                        InputLabelProps={{
-                                            shrink: true,
-                                        }}
-                                    />
                                     <MenuItem value="Pendente">Pendente</MenuItem>
                                     <MenuItem value="Em Andamento">Em Andamento</MenuItem>
                                     <MenuItem value="Concluído">Concluído</MenuItem>
@@ -473,55 +434,56 @@ const Ocorrencias = () => {
                                             <Typography variant="body2">Enviado por: {ocorrencia.nomeUsuario}</Typography>
                                             <Typography variant="body2">
                                                 <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
-                                                <Typography variant="body2"></Typography>
+                                            </Typography>
+                                            <Typography variant="body2">
                                                 <strong>Endereço:</strong> {ocorrencia.endereco || 'Não selecionada'}
-                                                <Typography variant="body2"></Typography>
+                                            </Typography>
+                                            <Typography variant="body2">
                                                 <strong>Descrição da Ocorrência do usuário:</strong> {ocorrencia.observacoes || 'Não selecionada'}
                                             </Typography>
-                                            <Typography variant="body2"></Typography>
-                                            <strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não selecionada'}
-
+                                            <Typography variant="body2">
+                                                <strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não selecionada'}
+                                            </Typography>
                                             <Typography variant="body2">
                                                 <strong>Data da execução:</strong>
                                                 {ocorrencia.dataTarefaExecutada ?
                                                     new Date(ocorrencia.dataTarefaExecutada).toLocaleString('pt-BR') :
                                                     new Date().toLocaleString('pt-BR')}
+
                                             </Typography>
+
+                                            <Typography variant='body2'><strong>Imagens:</strong>       </Typography>
+
+
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                                {imagensPorOcorrencia[ocorrencia.id]?.map((img, index) => (
+                                                    <Box key={index} sx={{ width: 100, height: 100 }}>
+                                                        <img
+                                                            src={img.url}
+                                                            alt={`Imagem ${index + 1}`}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                                                        />
+                                                    </Box>
+                                                ))}
+                                            </Box>
                                         </>
                                     }
                                 />
                                 <Button onClick={() => {
                                     setdescricaoEditada(ocorrencia.descricao);
-                                    setTarefaEditada(ocorrencia.tarefaEditada || ''); // Garante que não será undefined
-                                    setStatusEditado(ocorrencia.status || 'Pendente'); // Define um valor padrão se estiver vazio
+                                    setTarefaEditada(ocorrencia.tarefaEditada || '');
+                                    setStatusEditado(ocorrencia.status || 'Pendente');
                                     setEditandoOcorrencia(ocorrencia.id);
                                     setDataTarefaEditada(ocorrencia.dataTarefaExecutada || '');
+                                    setImages(ocorrencia.images || '');
                                 }}>
                                     Editar
                                 </Button>
-
                             </>
                         )}
                     </ListItem>
                 ))}
             </List>
-
-            {ocorrencias.map((ocorrencia) => (
-                ocorrencia.media && ocorrencia.media.map((mediaURL, index) => (
-                    <div key={index}>
-                        {mediaURL.endsWith('.mp4') ? (
-                            <video width="200" controls>
-                                <source src={mediaURL} type="video/mp4" />
-                                Seu navegador não suporta o elemento de vídeo.
-                            </video>
-                        ) : (
-                            <img src={mediaURL} alt="Ocorrência" width="200" />
-                        )}
-                        <Button onClick={() => handleRemoverArquivo(ocorrencia.id, mediaURL)} color="error">
-                            Remover Arquivo
-                        </Button>
-                    </div>
-                ))))}
 
             <Button
                 onClick={handleNavigateToMap}
@@ -532,8 +494,17 @@ const Ocorrencias = () => {
                 Ver Mapa de Ocorrências
             </Button>
 
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+            >
+                <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
         </Container>
-    )
-}
+    );
+};
 
 export default Ocorrencias;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material';
+import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box,borderColor, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material'; // Importando componentes do Material-UI
 import { useNavigate } from 'react-router-dom';
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
@@ -32,7 +32,7 @@ function RegistroProblemas() {
   const [endereco, setEndereco] = useState('');
   const [resultadoEndereco, setResultadoEndereco] = useState('');
   const [melhoria, setMelhoria] = useState('');
-  const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({});
+  const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({}); 
   const [imagem, setImagem] = useState(null);
   const [imagens, setImagens] = useState([]);
   const { user, logout, handleReg } = useContext(AuthContext);
@@ -311,6 +311,11 @@ function RegistroProblemas() {
 
   const handleRemoveImage = async (ocorrenciaId, imageId) => {
     try {
+       // Adiciona confirmação antes de remover
+    const confirmacao = window.confirm('Tem certeza que deseja remover esta imagem?');
+    
+    if (!confirmacao) return; // Se o usuário cancelar, não prossegue
+    
       await deleteImage(imageId);
 
       setImagensPorOcorrencia(prev => ({
@@ -360,8 +365,6 @@ function RegistroProblemas() {
     }
   };
 
-
-
   const handleEditarClick = (id) => {
     const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
 
@@ -372,9 +375,6 @@ function RegistroProblemas() {
       setEndereco(ocorrenciaSelecionada.endereco); // Preenche o campo de endereço específico
     }
   };
-
-
-
 
   const handleSalvarEdicao = async () => {
     if (ocorrenciaEditar) {
@@ -410,9 +410,6 @@ function RegistroProblemas() {
       }
     }
   };
-
-
-
 
   const handleRemoverOcorrencia = async (id) => {
     try {
@@ -614,7 +611,7 @@ function RegistroProblemas() {
           endereco: endereco,
           data: new Date().toISOString(),
           melhoria,
-          imagens: imagens,
+          imagens: o.imagens,
           status: "Pendente",  // Adicionando o status com valor inicial
 
         })
@@ -641,33 +638,34 @@ function RegistroProblemas() {
 
 
 
-  return (
-    <Container maxWidth="sm">
-      <Box sx={{ mb: 3 }}>
-        <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
-          Sair
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate('/ocorrenciasMes')}
-          fullWidth
-        >
-          Ver Ocorrências do Mês
-        </Button>
-      </Box>
+ return (
+  <Container maxWidth="sm">
+    <Box sx={{ mb: 3 }}>
+      <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
+        Sair
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/ocorrenciasMes')}
+        fullWidth
+      >
+        Ver Ocorrências do Mês
+      </Button>
+    </Box>
 
-      <Paper sx={{ padding: 3, mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Registrar Ocorrências da sua Região
-        </Typography>
-        <Typography variant="subtitle1" gutterBottom>
-          Bem-vindo, {user.nome}
-        </Typography>
+    <Paper sx={{ padding: 3, mb: 4 }}>
+      <Typography variant="h5" gutterBottom>
+        Registrar Ocorrências da sua Região
+      </Typography>
+      <Typography variant="subtitle1" gutterBottom>
+        Bem-vindo, {user.nome}
+      </Typography>
 
-        <List>
-          {ocorrencias.map((o) => (
-            <ListItem key={o.id}>
+      <List>
+        {ocorrencias.map((o, index) => (
+          <React.Fragment key={o.id}>
+            <ListItem>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                 <Box>
                   <Typography variant="body2">
@@ -693,10 +691,6 @@ function RegistroProblemas() {
                       'Data não disponível'}
                   </Typography>
 
-
-
-
-
                   <Typography
                     variant="body2"
                     sx={{
@@ -714,14 +708,12 @@ function RegistroProblemas() {
 
                   <Typography variant="body2">
                     <strong>Imagens:</strong>
-
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-         
                     {imagensPorOcorrencia[o.id]?.map((img) => (
                       <Box key={img.id} position="relative" sx={{ m: 1 }}>
                         <img
-                          src={img.url}  // Usando a URL diretamente
+                          src={img.url}
                           alt={`Imagem da ocorrência ${o.id}`}
                           style={{
                             width: 100,
@@ -744,7 +736,6 @@ function RegistroProblemas() {
                         </IconButton>
                       </Box>
                     ))}
-
                   </Box>
                 </Box>
 
@@ -774,10 +765,11 @@ function RegistroProblemas() {
                 </Box>
               </Box>
             </ListItem>
-          ))}
-        </List>
-
-      </Paper>
+            {index < ocorrencias.length - 1 && <Divider sx={{ my: 2,borderColor: 'grey.700' }} />}
+          </React.Fragment>
+        ))}
+      </List>
+    </Paper>
 
       <Box mt={4}>
         <Typography variant="h6">Nova Ocorrência</Typography>
