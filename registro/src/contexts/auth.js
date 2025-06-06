@@ -36,7 +36,7 @@ function AuthProvider({ children }) {
       const storageUser = localStorage.getItem("@tickesPRO"); // Verifica se há um usuário armazenado no localStorage
 
       if (storageUser) {
-        setUser(JSON.parse(storageUser));
+        setUser(JSON.parse(storageUser)); // Se houver, define o estado do usuário
       }
       setLoading(false); // Finaliza o estado de carregamento inicial
     }

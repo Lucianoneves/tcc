@@ -83,11 +83,6 @@ function PerfilUsuario() {
         setFotoPreview(fotoSalva);
       }
     }, []);
-
-  
-
-  
-
   
 
 
@@ -102,7 +97,7 @@ function PerfilUsuario() {
       const querySnapshot = await getDocs(q);
       const ocorrenciasList = [];
       querySnapshot.forEach((doc) => {
-        ocorrenciasList.push({ id: doc.id, ...doc.data() });
+      ocorrenciasList.push({ id: doc.id, ...doc.data() });
       });
       setOcorrencias(ocorrenciasList);
     } catch (error) {

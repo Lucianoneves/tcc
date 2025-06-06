@@ -1,4 +1,3 @@
-
  // Esse codigo  implementa um servidor Backend usando  Node.js com o  framework Express.js o codigo tem a função  receber a uma requesição POST com um numero de telefone,
  // Rota para enviar e redefinir a senha  receber  um email POST. configura o email  de redefinição desenha utilizando o Nodemailer // 
 

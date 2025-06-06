@@ -8,11 +8,16 @@
 
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-const firebaseConfig = {
+
+// Variáveis globais fornecidas pelo ambiente Canvas
+
+
+// eslint-disable-next-line no-use-before-define
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(firebaseConfig) :  {
     apiKey: "AIzaSyC863Auq1yphIbaD4S0e1iRWucyDSqPBok",
     authDomain: "tccregistro-1446b.firebaseapp.com",
     projectId: "tccregistro-1446b",

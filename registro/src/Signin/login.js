@@ -4,7 +4,8 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/login.css";
 import { AuthContext } from "../contexts/auth";
-import { Box, Button, Grid, TextField, Typography } from "@mui/material";
+import { Box, Button, Grid, TextField, Typography,  InputAdornment, IconButton  } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material"; // Importe os ícones necessários
 import { toast } from "react-toastify";
 import { db } from "../services/firebaseConnection";
 import { addDoc, collection, query, where, getDocs, doc, deleteDoc } from "firebase/firestore";
@@ -14,9 +15,19 @@ function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false); // Estado para controlar a visibilidade da senha
 
   // Obtendo a função de login e o estado de carregamento do contexto
   const { login, loadingAuth, user } = useContext(AuthContext);
+
+    const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+
+    const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,13 +145,29 @@ function Login() {
             name="password" // Nome único para evitar associações
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            type="password"
+            type={showPassword ? "text" : "password"}  // Esta é a linha crucial que precisa ser alterad
             required
             autoComplete="new-password" // Evita preenchimento automático
             inputProps={{ minLength: 6, maxLength: 20 }} // Limites de caracteres
             helperText="A senha deve ter entre 6 e 12caracteres."
+               InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
           />
         </Grid>
+          
+      
 
         <Grid item xs={12}>
           <Button type="submit" variant="contained" fullWidth>

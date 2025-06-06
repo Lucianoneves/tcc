@@ -6,6 +6,8 @@
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
+    "@google-cloud/language": "^7.1.0",
+    "@google/generative-ai": "^0.24.1",
     "@mui/icons-material": "^6.1.5",
     "@mui/material": "^6.1.5",
     "@react-google-maps/api": "^2.20.5",

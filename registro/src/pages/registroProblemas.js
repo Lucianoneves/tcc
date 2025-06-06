@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, borderColor, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material'; // Importando componentes do Material-UI
+// eslint-disable-next-line no-unused-vars
+import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material'; // Importando componentes do Material-UI
 import { useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
 import MapIcon from '@mui/icons-material/Map';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
+// eslint-disable-next-line no-unused-vars
 import { collection, doc, getDoc, setDoc, addDoc, query, where, getDocs, deleteDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
@@ -11,17 +14,9 @@ import { toast } from 'react-toastify';
 import { saveImage, getImages, deleteImage } from "./imageDB";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-
-
-
-
-
-
-
-
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'; // Import the new icon
 
 function RegistroProblemas() {
-
   const navigate = useNavigate(); // Hook para redirecionamento
   const [ocorrencias, setOcorrencias] = useState([]);
   const [novaOcorrencia, setNovaOcorrencia] = useState('');
@@ -30,16 +25,19 @@ function RegistroProblemas() {
   const [erroLocalizacao, setErroLocalizacao] = useState(null);
   const [enderecoEditavel, setEnderecoEditavel] = useState('');
   const [endereco, setEndereco] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [resultadoEndereco, setResultadoEndereco] = useState('');
   const [melhoria, setMelhoria] = useState('');
   const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({});
+  // eslint-disable-next-line no-unused-vars
   const [imagem, setImagem] = useState(null);
   const [imagens, setImagens] = useState([]);
-  const { user, logout, handleReg } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -48,21 +46,17 @@ function RegistroProblemas() {
   const [o, setO] = useState({ status: 'Pendente' });
   const [problemas, setProblemas] = useState([]);
   const [dataOcorrencia, setDataOcorrencia] = useState('');
-  const [ocorrenciaEditar, setOcorrenciaEditar] = useState(null); // Ocorrência a ser editada  
+  const [ocorrenciaEditar, setOcorrenciaEditar] = useState(null); // Ocorrência a ser editada 
   const [ocorrencia, setOcorrencia] = useState({});
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
 
-  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.REACT_APP_Maps_API_KEY;
 
 
   async function handleLogout() {
     await logout();
   }
-
-
-
-
 
 
   useEffect(() => {
@@ -84,9 +78,6 @@ function RegistroProblemas() {
   useEffect(() => {
     setTimeout(() => setStatus('Em Análise'), 2000); // Simulando uma mudança
   }, []);
-
-
-
 
 
   useEffect(() => {
@@ -143,7 +134,15 @@ function RegistroProblemas() {
         ocorrenciasList.push({ id: doc.id, ...doc.data() });
       });
 
-      // Atualiza o estado com as ocorrências filtradas
+      // Sort the occurrences by date in descending order (most recent first)
+      ocorrenciasList.sort((a, b) => {
+        // Convert to Date objects for accurate comparison
+        const dateA = new Date(a.data);
+        const dateB = new Date(b.data);
+        return dateB - dateA; // For descending order
+      });
+
+      // Atualiza o estado com as ocorrências filtradas e ordenadas
       setOcorrencias(ocorrenciasList);
     } catch (error) {
       console.error("Erro ao buscar ocorrências:", error);
@@ -166,7 +165,14 @@ function RegistroProblemas() {
     const loadOcorrencias = async () => {
       const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
       if (ocorrenciasSalvas) {
-        setOcorrencias(JSON.parse(ocorrenciasSalvas)); // Carregar do localStorage
+        // Parse and sort the data from localStorage
+        const parsedOcorrencias = JSON.parse(ocorrenciasSalvas);
+        parsedOcorrencias.sort((a, b) => {
+          const dateA = new Date(a.data);
+          const dateB = new Date(b.data);
+          return dateB - dateA;
+        });
+        setOcorrencias(parsedOcorrencias);
       } else {
         try {
           // Carregar do Firebase se não houver dados no localStorage
@@ -175,6 +181,12 @@ function RegistroProblemas() {
             id: doc.id,
             ...doc.data(),
           }));
+          // Sort the data fetched from Firebase
+          ocorrenciasFirebase.sort((a, b) => {
+            const dateA = new Date(a.data);
+            const dateB = new Date(b.data);
+            return dateB - dateA;
+          });
           setOcorrencias(ocorrenciasFirebase);
         } catch (error) {
           console.error('Erro ao buscar ocorrências do Firebase:', error);
@@ -192,11 +204,6 @@ function RegistroProblemas() {
     }
   }, [ocorrencias]);
 
-  function marcarParaEditar(ocorrencia) {
-    // Lógica para editar a ocorrência
-    setOcorrencia(ocorrencia);
-    console.log(ocorrencia);
-  }
 
 
 
@@ -212,11 +219,7 @@ function RegistroProblemas() {
     setEnderecoEditavel(""); // Limpa o campo editável também
 
 
-
-
-
-
-    // Verifica se a descrição da nova ocorrência não está vazia  ou fixada 
+    // Verifica se a descrição da nova ocorrência não está vazia ou fixada 
     if (novaOcorrencia.trim()) {
       const nova = {
         usuarioId: user.uid,
@@ -224,18 +227,9 @@ function RegistroProblemas() {
         descricao: novaOcorrencia,
         endereco: enderecoAtual,
         observacoes,
-        status: '',
+        status: 'Pendente', // Set initial status
         data: dataFormatada,
         media: [],
-      };
-
-      // Função para editar o endereço de uma ocorrência específica
-      const editarEnderecoOcorrencia = (id, novoEndereco) => {
-        setOcorrencias((prevOcorrencias) =>
-          prevOcorrencias.map((ocorrencia) =>
-            ocorrencia.id === id ? { ...ocorrencia, endereco: novoEndereco } : ocorrencia
-          )
-        );
       };
 
       try {
@@ -248,7 +242,15 @@ function RegistroProblemas() {
           await updateDoc(doc(db, "ocorrencias", docRef.id), { media: [fileURL] });
         }
 
-        setOcorrencias((prev) => [...prev, { id: docRef.id, ...nova }]);
+        // Add the new occurrence and sort the list
+        setOcorrencias((prev) => {
+          const updatedOcorrencias = [...prev, { id: docRef.id, ...nova }];
+          return updatedOcorrencias.sort((a, b) => {
+            const dateA = new Date(a.data);
+            const dateB = new Date(b.data);
+            return dateB - dateA;
+          });
+        });
         setNovaOcorrencia('');
         setObservacoes('');
         setSelectedFile(null);
@@ -332,39 +334,6 @@ function RegistroProblemas() {
 
 
 
-
-
-  const handleEditarOcorrencia = async (id) => {
-    const ocorrenciaRef = doc(db, "ocorrencias", id); // Referência para a ocorrência que será editada
-
-    // Atualizando os campos da ocorrência
-    try {
-      await updateDoc(ocorrenciaRef, {
-        descricao: novaOcorrencia, // Atualiza a descrição
-        observacoes: observacoes,  // Atualiza as observações
-        status: o.status,          // Atualiza o status
-        nomeUsuario: user.nome,
-        endereco: endereco, // Atualiza o endereço
-      });
-
-      setOcorrencias((prev) =>
-        prev.map((ocorrencia) =>
-          ocorrencia.id === id ? { ...ocorrencia, endereco } : ocorrencia
-        )
-      );
-
-
-      setSnackbarMessage('Ocorrência editada com sucesso!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-    } catch (error) {
-      console.error("Erro ao editar ocorrência: ", error);
-      setSnackbarMessage('Erro ao editar a ocorrência.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-    }
-  };
-
   const handleEditarClick = (id) => {
     const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
 
@@ -398,7 +367,7 @@ function RegistroProblemas() {
             };
           }
           return ocorrencia;
-        });
+        }).sort((a, b) => new Date(b.data) - new Date(a.data)); // Sort after update
 
         setOcorrencias(novaListaOcorrencias); // Atualiza a lista de ocorrências
         setNovaOcorrencia("");
@@ -413,13 +382,18 @@ function RegistroProblemas() {
 
   const handleRemoverOcorrencia = async (id) => {
     try {
+      // Add confirmation before removing
+      const confirmacao = window.confirm('Tem certeza que deseja remover esta ocorrência?');
+      if (!confirmacao) return;
+
       // Remover do Firestore
       const ocorrenciaRef = doc(db, "ocorrencias", id);
       await deleteDoc(ocorrenciaRef);
 
       // Remover do estado e atualizar localStorage
-      setOcorrencias((prev) => prev.filter((o) => o.id !== id));
-      localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias.filter((o) => o.id !== id)));
+      const updatedOcorrencias = ocorrencias.filter((o) => o.id !== id);
+      setOcorrencias(updatedOcorrencias);
+      localStorage.setItem('ocorrencias', JSON.stringify(updatedOcorrencias));
 
       setSnackbarMessage('Ocorrência removida com sucesso!');
       setSnackbarSeverity('success');
@@ -433,50 +407,6 @@ function RegistroProblemas() {
   };
 
 
-  const handleSubmit = async () => {
-    if (!selecionadas.length) {
-      alert("Selecione pelo menos uma ocorrência.");
-      return;
-    }
-    if (!user) {
-      alert("Usuário não identificado. Faça login novamente.");
-      return;
-    }
-
-    const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
-
-    try {
-      const registros = ocorrenciasSelecionadas.map((o) =>
-        addDoc(collection(db, "problemas"), {
-          usuarioId: user.uid,
-          endereco: endereco,
-          data: new Date().toISOString(),
-          descricao: o.descricao,
-          tarefaEditada: ocorrencia.tarefaEditada,
-          localizacao: localizacao || '',
-          melhoria,
-          imagens: imagens,
-          status: "Pendente",
-
-
-        })
-      );
-      await Promise.all(registros);
-
-      alert("Ocorrências registradas com sucesso!");
-
-      // Atualize o estado local e o localStorage
-      const ocorrenciasAtualizadas = ocorrencias.filter((o) => !selecionadas.includes(o.id));
-      setOcorrencias(ocorrenciasAtualizadas);
-      localStorage.setItem('ocorrencias', JSON.stringify(ocorrenciasAtualizadas));
-
-      setSelecionadas([]);
-      setMelhoria("");
-    } catch (error) {
-      console.error("Erro ao registrar ocorrências:", error);
-      alert("Erro ao registrar as ocorrências. Tente novamente.");
-    }
-  };
 
 
 
@@ -485,13 +415,6 @@ function RegistroProblemas() {
 
 
   // Função para alternar o estado do checkbox
-  const handleCheckboxChange = (id) => {
-    setSelecionadas((prevSelecionadas) =>
-      prevSelecionadas.includes(id)
-        ? prevSelecionadas.filter((itemId) => itemId !== id)  // Remove se já estiver selecionado
-        : [...prevSelecionadas, id]  // Adiciona se não estiver selecionado
-    );
-  };
 
 
 
@@ -567,7 +490,7 @@ function RegistroProblemas() {
   // Função para salvar no Firebase
   const salvarEnderecoNoFirebase = async (endereco) => {
     try {
-      const usuarioId = "usuario123"; // Substitua pelo ID real do usuário autenticado
+      const usuarioId = user.uid; // Use the authenticated user's ID
       await setDoc(doc(db, "enderecos", usuarioId), {
         endereco: endereco,
         timestamp: new Date(),
@@ -579,61 +502,7 @@ function RegistroProblemas() {
   };
 
 
-  const handleSubmitNovaOcorrencia = async () => {
-    if (!selecionadas.length) {
-      alert("Selecione pelo menos uma ocorrência.");
-      return;
-    }
 
-    if (!user) {
-      alert("Usuário não identificado. Faça login novamente.");
-      return;
-    }
-
-    console.log(user);
-
-    if (!user.nome) {
-      console.error("Nome do usuário não encontrado.");
-      return;
-    }
-
-    const ocorrenciasSelecionadas = ocorrencias.filter((o) => selecionadas.includes(o.id));
-
-    try {
-      // Cria um array de promessas para registrar as ocorrências no Firestore
-      const registros = ocorrenciasSelecionadas.map((o) =>
-        addDoc(collection(db, "problemas"), {
-          usuarioId: user.uid,
-          nomeUsuario: user.nome,
-          descricao: o.descricao,
-          tarefaEditada: ocorrencia.tarefaEditada,
-          localizacao: localizacao || "Não especificada",
-          endereco: endereco,
-          data: new Date().toISOString(),
-          melhoria,
-          imagens: o.imagens,
-          status: "Pendente",  // Adicionando o status com valor inicial
-
-        })
-      );
-
-      // Aguarda todas as promessas serem resolvidas
-      await Promise.all(registros);
-
-      alert("Ocorrências registradas com sucesso!");
-      setSelecionadas([]); // Limpar as ocorrências selecionadas
-      setMelhoria(""); // Limpar o campo de melhoria
-    } catch (error) {
-      console.error("Erro ao registrar ocorrências:", error);
-      alert("Erro ao registrar as ocorrências. Tente novamente.");
-    }
-  };
-
-
-
-  const handleDateChange = (e) => {
-    setDataOcorrencia(e.target.value);
-  };
 
 
 
@@ -666,7 +535,7 @@ function RegistroProblemas() {
           {ocorrencias.map((o, index) => (
             <React.Fragment key={o.id}>
               <ListItem>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                   <Box>
                     <Typography variant="body2">
                       <strong>Ocorrência:</strong> {o.descricao}
@@ -739,34 +608,43 @@ function RegistroProblemas() {
                     </Box>
                   </Box>
 
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleAddImage(o.id, e)}
-                    style={{ display: "none" }}
-                    id={`image-upload-${o.id}`}
-                  />
-                  <label htmlFor={`image-upload-${o.id}`}>
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      startIcon={<AddPhotoAlternateIcon />}
-                    >
-                      Adicionar Imagem
-                    </Button>
-                  </label>
-                  <Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAddImage(o.id, e)}
+                      style={{ display: "none" }}
+                      id={`image-upload-${o.id}`}
+                    />
+                    <label htmlFor={`image-upload-${o.id}`}>
+                      <Button
+                        variant="outlined"
+                        component="span"
+                        startIcon={<AddPhotoAlternateIcon />}
+                      >
+                        Adicionar Imagem
+                      </Button>
+                    </label>
                     <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
                       Editar
                     </Button>
                     <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
                       Salvar
                     </Button>
+                    {/* Add the new "Remover" button */}
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => handleRemoverOcorrencia(o.id)}
+                      startIcon={<RemoveCircleOutlineIcon />}
+                    >
+                      Remover
+                    </Button>
                   </Box>
                 </Box>
               </ListItem>
               {index < ocorrencias.length - 1 && <Divider sx={{ my: 2, borderColor: 'grey.700' }} />}
-            </React.Fragment> // Adiciona um divisor entre as ocorrências
+            </React.Fragment>
           ))}
         </List>
       </Paper>
@@ -789,7 +667,7 @@ function RegistroProblemas() {
       </Box>
 
       <Box mt={4}>
-        <Typography variant="h6">Observações</Typography>
+        <Typography variant="h6">Descrição das Ocorrências</Typography>
         <TextField
           value={observacoes}
           onChange={(e) => setObservacoes(e.target.value)}
@@ -822,13 +700,14 @@ function RegistroProblemas() {
           />
         </div>
       </div>
-
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </Container>
   )
 }
 
-
-
 export default RegistroProblemas;
-
-
