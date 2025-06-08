@@ -27,6 +27,28 @@ const StatusSpan = styled('span')(({ status }) => ({
                 status === 'Concluído' ? '#4caf50' : '#9e9e9e'
 }));
 
+const GravidadeSpan = styled('span')(({ gravidade }) => ({
+    padding: '4px 8px',
+    borderRadius: '4px',
+    color: '#fff',
+    backgroundColor:
+        gravidade === 'Alta' ? '#f44336' :
+            gravidade === 'Média' ? '#FFA500' :
+                gravidade === 'Baixa' ? '#4caf50' : '#9e9e9e'
+}));
+
+const CATEGORIAS = [
+    'Buraco na via',
+    'Iluminação pública',
+    'Vazamento de água',
+    'Acúmulo de lixo',
+    'Sinalização',
+    'Podas de árvores',
+    'Outros'
+];
+
+const GRAVIDADE = ['Baixa', 'Média', 'Alta'];
+
 const Ocorrencias = () => {
     const navigate = useNavigate();
     const [mostrarMapa, setMostrarMapa] = useState(false);
@@ -60,6 +82,11 @@ const Ocorrencias = () => {
     const [ocorrencia, setOcorrencia] = useState(null);
     const [img, setImg] = useState(null);
     const [imgURL, setImgURL] = useState(null);
+    const [categoria, setCategoria] = useState('');
+    const [gravidade, setGravidade] = useState('');
+    const [categoriaEditada, setCategoriaEditada] = useState('');
+    const [gravidadeEditada, setGravidadeEditada] = useState('');
+
 
 
 
@@ -151,6 +178,8 @@ const Ocorrencias = () => {
                 tarefaEditada: tarefaEditada,
                 images: images,
                 dataTarefaExecutada: new Date().toISOString(),
+                categoria: categoriaEditada,
+                gravidade: gravidadeEditada
             });
 
             setOcorrencias(prev => prev.map(ocorrencia =>
@@ -161,6 +190,8 @@ const Ocorrencias = () => {
                     status: statusEditado,
                     tarefaEditada: tarefaEditada,
                     dataTarefaExecutada: new Date().toISOString(),
+                    categoria: categoriaEditada,
+                    gravidade: gravidadeEditada
                 } : ocorrencia
             ));
 
@@ -188,6 +219,8 @@ const Ocorrencias = () => {
                 observacoes,
                 tarefaEditada: tarefaEditada,
                 images: images,
+                categoria: categoria,
+                gravidade: gravidade
             };
 
             try {
@@ -221,8 +254,9 @@ const Ocorrencias = () => {
                 data: doc.data().data,
                 usuarioId: doc.data().usuarioId,
                 nomeUsuario: doc.data().nomeUsuario,
-                endereco: doc.data().endereco,
-                media: doc.data().media || []
+                endereco: doc.data().endereco,           
+                categoria: doc.data().categoria || 'Outros',
+                gravidade: doc.data().gravidade || ''
             }));
             setOcorrencias(ocorrenciasAtualizadas);
         });
@@ -297,14 +331,11 @@ const Ocorrencias = () => {
         }
 
         try {
-            // 1. Faz upload para o Firebase Storage
             const storageRef = ref(storage, `ocorrencias/${ocorrenciaId}/${file.name}`);
             await uploadBytes(storageRef, file);
 
-            // 2. Obtém a URL da imagem
             const imageURL = await getDownloadURL(storageRef);
 
-            // 3. Atualiza o estado para mostrar a imagem
             setImagensPorOcorrencia(prev => ({
                 ...prev,
                 [ocorrenciaId]: [...(prev[ocorrenciaId] || []), { url: imageURL }]
@@ -315,40 +346,8 @@ const Ocorrencias = () => {
             console.error("Erro ao enviar imagem:", error);
             toast.error('Falha no upload. Tente novamente.');
         }
-
-
-        return (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                {ocorrencia.imagens.map((mediaURL, index) => (
-                    <Box key={index} sx={{ position: 'relative' }}>
-                        {mediaURL.endsWith('.mp4') ? (
-                            <video width="150" controls>
-                                <source src={mediaURL} type="video/mp4" />
-                            </video>
-                        ) : (
-                            <img
-                                src={imgURL}
-                                alt={`Imagem ${index + 1}`}
-                                style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 4 }}
-                            />
-                        )}
-                        <IconButton
-                            size="small"
-                            sx={{
-                                position: 'absolute',
-                                top: 0,
-                                right: 0,
-                                backgroundColor: 'rgba(255,255,255,0.7)'
-                            }}
-                            onClick={() => handleRemoverArquivo(ocorrencia.id, img.url)}
-                        >
-                            <DeleteIcon fontSize="small" color="error" />
-                        </IconButton>
-                    </Box>
-                ))}
-            </Box>
-        );
     };
+
 
     return (
         <Container>
@@ -365,6 +364,8 @@ const Ocorrencias = () => {
                 Logado como: <strong>{adminNome}</strong>
                 <Chip label="Administrador" color="primary" size="small" />
             </Typography>
+
+          
 
             <List>
                 {ocorrencias.map((ocorrencia) => (
@@ -408,6 +409,30 @@ const Ocorrencias = () => {
                                         <MenuItem value="Em Andamento">Em Andamento</MenuItem>
                                         <MenuItem value="Concluído">Concluído</MenuItem>
                                     </TextField>
+                                    <TextField
+                                        select
+                                        label="Categoria"
+                                        value={categoriaEditada}
+                                        onChange={(e) => setCategoriaEditada(e.target.value)}
+                                        fullWidth
+                                        margin="normal"
+                                    >
+                                        {CATEGORIAS.map((cat) => (
+                                            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                                        ))}
+                                    </TextField>
+                                    <TextField
+                                        select
+                                        label="Gravidade"
+                                        value={gravidadeEditada}
+                                        onChange={(e) => setGravidadeEditada(e.target.value)}
+                                        fullWidth
+                                        margin="normal"
+                                    >
+                                        {GRAVIDADE.map((g) => (
+                                            <MenuItem key={g} value={g}>{g}</MenuItem>
+                                        ))}
+                                    </TextField>
                                     <Button
                                         onClick={() => handleSalvarEdicao(ocorrencia.id)}
                                         variant="contained"
@@ -428,12 +453,16 @@ const Ocorrencias = () => {
                             ) : (
                                 <>
                                     <ListItemText
-
                                         primary={ocorrencia.descricao}
                                         secondary={
                                             <>
-                                                <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
-                                                <Typography variant="body2">Enviado por: {ocorrencia.nomeUsuario}</Typography>
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                                                    <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
+                                                    <GravidadeSpan gravidade={ocorrencia.gravidade}>{ocorrencia.gravidade}</GravidadeSpan>
+                                                    <Chip label={ocorrencia.categoria} size="small" />
+                                                </Box>
+                                                <Typography variant="body2"><strong>Enviado por:</strong> {ocorrencia.nomeUsuario}</Typography>
+                                                <Typography variant="body2"><strong>Nome da Ocorrência:</strong> {ocorrencia.descricao}</Typography>
                                                 <Typography variant="body2">
                                                     <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
                                                 </Typography>
@@ -455,7 +484,6 @@ const Ocorrencias = () => {
 
                                                 <Typography variant='body2'><strong>Imagens:</strong> </Typography>
 
-
                                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                                                     {imagensPorOcorrencia[ocorrencia.id]?.map((img, index) => (
                                                         <Box key={index} sx={{ width: 100, height: 100 }}>
@@ -464,9 +492,7 @@ const Ocorrencias = () => {
                                                                 alt={`Imagem ${index + 1}`}
                                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
                                                             />
-                                                          
                                                         </Box>
-
                                                     ))}
                                                 </Box>
                                             </>
@@ -479,15 +505,16 @@ const Ocorrencias = () => {
                                         setEditandoOcorrencia(ocorrencia.id);
                                         setDataTarefaEditada(ocorrencia.dataTarefaExecutada || '');
                                         setImages(ocorrencia.images || '');
+                                        setCategoriaEditada(ocorrencia.categoria || 'Outros');
+                                        setGravidadeEditada(ocorrencia.gravidade || '');
                                     }}>
                                         Editar
                                     </Button>
                                 </>
                             )}
                         </ListItem>
-                         {/* Divider após cada ocorrência */}
                         <Divider sx={{ my: 2, borderColor: 'grey.700' }} />
-                </React.Fragment> // Adiciona um divisor entre as ocorrências
+                    </React.Fragment>
                 ))}
             </List>
 
@@ -510,7 +537,8 @@ const Ocorrencias = () => {
                 </Alert>
             </Snackbar>
         </Container>
+
     );
 };
 
-export default Ocorrencias; // Exporta o componente Ocorrencias
+export default Ocorrencias; 

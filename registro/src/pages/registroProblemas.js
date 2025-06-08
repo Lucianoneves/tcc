@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 // eslint-disable-next-line no-unused-vars
-import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, } from '@mui/material'; // Importando componentes do Material-UI
+import { Button, Checkbox, FormControlLabel, TextField, Typography, Container, Box, List, ListItem, Divider, IconButton, Grid, Paper, Input, Snackbar, MenuItem } from '@mui/material'; // Importando componentes do Material-UI
 import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import MapIcon from '@mui/icons-material/Map';
+import { styled } from '@mui/system';
 import '../styles/registroProblemas.css';
 import { AuthContext } from '../contexts/auth';
 // eslint-disable-next-line no-unused-vars
@@ -19,7 +20,10 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'; /
 function RegistroProblemas() {
   const navigate = useNavigate(); // Hook para redirecionamento
   const [ocorrencias, setOcorrencias] = useState([]);
-  const [novaOcorrencia, setNovaOcorrencia] = useState('');
+  const [novaOcorrencia, setNovaOcorrencia] = useState({
+    descricao: '',
+    gravidade: '' // Valor padrão
+  });
   const [selecionadas, setSelecionadas] = useState([]);
   const [localizacao, setLocalizacao] = useState('');
   const [erroLocalizacao, setErroLocalizacao] = useState(null);
@@ -51,12 +55,28 @@ function RegistroProblemas() {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
 
+
   const apiKey = process.env.REACT_APP_Maps_API_KEY;
 
 
   async function handleLogout() {
     await logout();
   }
+
+
+
+  const GravidadeSpan = styled('span')(({ gravidade }) => ({
+    padding: '4px 8px',
+    borderRadius: '4px',
+    color: '#fff',
+    backgroundColor:
+      gravidade === 'Alta' ? '#f44336' :
+        gravidade === 'Média' ? '#FFA500' :
+          gravidade === 'Baixa' ? '#4caf50' : '#9e9e9e'
+  }));
+
+  // Adicione também a lista de gravidades disponíveis
+  const GRAVIDADE = ['Baixa', 'Média', 'Alta'];
 
 
   useEffect(() => {
@@ -78,6 +98,9 @@ function RegistroProblemas() {
   useEffect(() => {
     setTimeout(() => setStatus('Em Análise'), 2000); // Simulando uma mudança
   }, []);
+
+
+
 
 
   useEffect(() => {
@@ -211,25 +234,21 @@ function RegistroProblemas() {
   const handleAdicionarOcorrencia = async () => {
     const dataAtual = new Date();
     const dataFormatada = dataAtual.toLocaleString();
-    // Armazena o endereço antes de limpar o estado
     const enderecoAtual = enderecoEditavel.trim();
 
-
-    setEndereco("");
-    setEnderecoEditavel(""); // Limpa o campo editável também
-
-
-    // Verifica se a descrição da nova ocorrência não está vazia ou fixada 
-    if (novaOcorrencia.trim()) {
+    // Verifica se a descrição da nova ocorrência não está vazia
+    if (novaOcorrencia.descricao.trim()) {
       const nova = {
         usuarioId: user.uid,
         nomeUsuario: user.nome,
-        descricao: novaOcorrencia,
+        descricao: novaOcorrencia.descricao,
+        gravidade: novaOcorrencia.gravidade, // Inclui a gravidade
         endereco: enderecoAtual,
         observacoes,
-        status: 'Pendente', // Set initial status
+        status: 'Pendente',
         data: dataFormatada,
-        media: [],
+        
+
       };
 
       try {
@@ -338,10 +357,13 @@ function RegistroProblemas() {
     const ocorrenciaSelecionada = ocorrencias.find((ocorrencia) => ocorrencia.id === id);
 
     if (ocorrenciaSelecionada) {
-      setOcorrenciaEditar(ocorrenciaSelecionada); // Preenche o estado com a ocorrência selecionada
-      setNovaOcorrencia(ocorrenciaSelecionada.descricao); // Preenche o campo de descrição
-      setObservacoes(ocorrenciaSelecionada.observacoes); // Preenche o campo de observações
-      setEndereco(ocorrenciaSelecionada.endereco); // Preenche o campo de endereço específico
+      setOcorrenciaEditar(ocorrenciaSelecionada);
+      setNovaOcorrencia({
+        descricao: ocorrenciaSelecionada.descricao,
+        gravidade: ocorrenciaSelecionada.gravidade || ''
+      });
+      setObservacoes(ocorrenciaSelecionada.observacoes);
+      setEndereco(ocorrenciaSelecionada.endereco);
     }
   };
 
@@ -350,32 +372,41 @@ function RegistroProblemas() {
       try {
         const novaOcorrenciaRef = doc(db, "ocorrencias", ocorrenciaEditar.id);
         await updateDoc(novaOcorrenciaRef, {
-          descricao: novaOcorrencia,
+          descricao: novaOcorrencia.descricao,
+          gravidade: novaOcorrencia.gravidade,
           observacoes: observacoes,
           nomeUsuario: user.nome,
-          endereco: endereco, // Atualiza o endereço específico da ocorrência
+          endereco: endereco,
         });
 
         const novaListaOcorrencias = ocorrencias.map((ocorrencia) => {
           if (ocorrencia.id === ocorrenciaEditar.id) {
             return {
               ...ocorrencia,
-              descricao: novaOcorrencia,
+              descricao: novaOcorrencia.descricao,
+              gravidade: novaOcorrencia.gravidade,
               observacoes: observacoes,
               nomeUsuario: user.nome,
-              endereco: endereco, // Atualiza o endereço da ocorrência
+              endereco: endereco,
             };
           }
           return ocorrencia;
-        }).sort((a, b) => new Date(b.data) - new Date(a.data)); // Sort after update
+        }).sort((a, b) => new Date(b.data) - new Date(a.data));
 
-        setOcorrencias(novaListaOcorrencias); // Atualiza a lista de ocorrências
-        setNovaOcorrencia("");
-        setObservacoes("");
+        setOcorrencias(novaListaOcorrencias);
+        setNovaOcorrencia({ descricao: '', gravidade: '' });
+        setObservacoes('');
         setOcorrenciaEditar(null);
-        setEndereco(""); // Limpa o endereço após salvar
+        setEndereco('');
+
+        setSnackbarMessage('Ocorrência atualizada com sucesso!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
       } catch (error) {
         console.error("Erro ao salvar edição:", error);
+        setSnackbarMessage('Erro ao atualizar a ocorrência.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
       }
     }
   };
@@ -538,10 +569,16 @@ function RegistroProblemas() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                   <Box>
                     <Typography variant="body2">
-                      <strong>Ocorrência:</strong> {o.descricao}
+                      <strong> Nome Ocorrência:</strong> {o.descricao}
                     </Typography>
                     <Typography variant="body2">
                       <strong>Descrição da Ocorrência:</strong> {o.observacoes}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Gravidade:</strong> <GravidadeSpan gravidade={o.gravidade}>{o.gravidade}</GravidadeSpan>
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Categoria da  Descrição:</strong> {o.categoria}
                     </Typography>
                     <Typography variant="body2">
                       <strong>Data da Ocorrência:</strong> {o.data}
@@ -574,6 +611,7 @@ function RegistroProblemas() {
                     >
                       Status: {o?.status || 'Pendente'}
                     </Typography>
+
 
                     <Typography variant="body2">
                       <strong>Imagens:</strong>
@@ -652,13 +690,16 @@ function RegistroProblemas() {
       <Box mt={4}>
         <Typography variant="h6">Nova Ocorrência</Typography>
         <TextField
-          value={novaOcorrencia}
-          onChange={(e) => setNovaOcorrencia(e.target.value)}
+          value={novaOcorrencia.descricao}
+          onChange={(e) => setNovaOcorrencia({ ...novaOcorrencia, descricao: e.target.value })}
           fullWidth
           variant="outlined"
           label="Descrição da nova ocorrência"
           margin="normal"
         />
+
+      
+
         <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
           <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
             Adicionar Ocorrência
