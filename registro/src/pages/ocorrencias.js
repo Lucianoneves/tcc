@@ -254,7 +254,7 @@ const Ocorrencias = () => {
                 data: doc.data().data,
                 usuarioId: doc.data().usuarioId,
                 nomeUsuario: doc.data().nomeUsuario,
-                endereco: doc.data().endereco,           
+                endereco: doc.data().endereco,
                 categoria: doc.data().categoria || 'Outros',
                 gravidade: doc.data().gravidade || ''
             }));
@@ -365,7 +365,7 @@ const Ocorrencias = () => {
                 <Chip label="Administrador" color="primary" size="small" />
             </Typography>
 
-          
+
 
             <List>
                 {ocorrencias.map((ocorrencia) => (

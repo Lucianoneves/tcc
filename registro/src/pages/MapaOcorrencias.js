@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, where, writeBatch, doc } from "firebase/firestore";
 import { db } from "../services/firebaseConnection";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { Paper, Typography, Box, CircularProgress, Button, List, ListItem, ListItemText, Chip } from '@mui/material';
+import { Paper, Typography, Box, CircularProgress, Button, List, ListItem, ListItemText, Chip, Divider } from '@mui/material';
 
 const MapaOcorrencias = () => {
   const navigate = useNavigate();
@@ -39,11 +39,29 @@ const MapaOcorrencias = () => {
     });
   }, []);
 
+  const formatarData = useCallback((timestamp) => {
+    if (!timestamp) return 'Data não disponível';
+
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+
+    // Formato SI (ISO 8601): YYYY-MM-DD HH:MM:SS
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }, []);
+
+
+
   const salvarEnderecosFrequentes = useCallback(async (enderecosAgrupados) => {
     try {
       const batch = writeBatch(db);
       const enderecosRef = collection(db, "enderecos_frequentes");
-      
+
       const snapshot = await getDocs(enderecosRef);
       snapshot.forEach((doc) => batch.delete(doc.ref));
 
@@ -53,7 +71,8 @@ const MapaOcorrencias = () => {
           endereco: endereco.enderecoOriginal,
           quantidade: endereco.count,
           coordenadas: endereco.coordenadas,
-          ultimaAtualizacao: new Date()
+          ultimaAtualizacao: new Date(),
+          ultimaOcorrencia: endereco.ultimaOcorrencia
         });
       });
 
@@ -63,22 +82,41 @@ const MapaOcorrencias = () => {
     }
   }, []);
 
+
   const processarEnderecos = useCallback(async (ocorrencias) => {
     const ocorrenciasComEndereco = ocorrencias.filter(o => o.endereco?.trim());
     const agrupamento = {};
-    
+
     ocorrenciasComEndereco.forEach(ocorrencia => {
       const enderecoNormalizado = ocorrencia.endereco.toLowerCase().trim();
       if (!agrupamento[enderecoNormalizado]) {
         agrupamento[enderecoNormalizado] = {
           enderecoOriginal: ocorrencia.endereco,
           count: 0,
-          ocorrencias: []
+          ocorrencias: [],
+          ultimaOcorrencia: null
         };
       }
-      agrupamento[enderecoNormalizado].count++;
-      agrupamento[enderecoNormalizado].ocorrencias.push(ocorrencia);
+
+      // Adiciona TODOS os dados da ocorrência ao grupo
+    agrupamento[enderecoNormalizado].ocorrencias.push({
+      ...ocorrencia, // Mantém todos os campos originais
+      timestamp: ocorrencia.timestamp || ocorrencia.data || ocorrencia.createdAt,
     });
+    
+    agrupamento[enderecoNormalizado].count++;
+    
+    // Atualiza a última ocorrência
+    const dataOcorrencia = ocorrencia.timestamp || ocorrencia.data || ocorrencia.createdAt;
+    if (dataOcorrencia) {
+      if (!agrupamento[enderecoNormalizado].ultimaOcorrencia || 
+          dataOcorrencia > agrupamento[enderecoNormalizado].ultimaOcorrencia) {
+        agrupamento[enderecoNormalizado].ultimaOcorrencia = dataOcorrencia;
+      }
+    } 
+  });
+
+    
 
     const enderecosAgrupadosArray = Object.values(agrupamento).sort((a, b) => b.count - a.count);
 
@@ -98,6 +136,9 @@ const MapaOcorrencias = () => {
       })
     );
 
+
+
+
     return enderecosComCoordenadas.filter(Boolean);
   }, [geocodificarEndereco]);
 
@@ -109,7 +150,12 @@ const MapaOcorrencias = () => {
       const ocorrenciasRef = collection(db, "ocorrencias");
       const q = query(ocorrenciasRef, where("endereco", "!=", ""));
       const querySnapshot = await getDocs(q);
-      const ocorrenciasList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const ocorrenciasList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Garante que temos um campo de data/timestamp
+        timestamp: doc.data().timestamp || doc.data().data || doc.data().createdAt || null
+      }));
 
       const enderecosProcessados = await processarEnderecos(ocorrenciasList);
       await salvarEnderecosFrequentes(enderecosProcessados);
@@ -142,6 +188,8 @@ const MapaOcorrencias = () => {
   }, [fetchOcorrencias]);
 
   if (loading) {
+
+    
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
         <CircularProgress />
@@ -156,8 +204,8 @@ const MapaOcorrencias = () => {
         <Typography variant="h5" gutterBottom>
           Mapa de Ocorrências por Endereço
         </Typography>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           color="secondary"
           onClick={() => navigate('/ocorrencias')}
           sx={{ mb: 2 }}
@@ -169,11 +217,11 @@ const MapaOcorrencias = () => {
       {erroLocalizacao && <Typography color="error" sx={{ mb: 2 }}>{erroLocalizacao}</Typography>}
 
       <Typography variant="body1" gutterBottom>
-        Locais com maior número de ocorrências registradas. O tamanho e cor dos marcadores 
+        Locais com maior número de ocorrências registradas. O tamanho e cor dos marcadores
         indicam a quantidade de ocorrências em cada local.
       </Typography>
 
-      <LoadScript 
+      <LoadScript
         googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
         onLoad={() => setIsMapLoaded(true)}
       >
@@ -194,31 +242,88 @@ const MapaOcorrencias = () => {
               />
             ))}
 
-            {selectedOcorrencia && (
-              <InfoWindow position={selectedOcorrencia.coordenadas} onCloseClick={() => setSelectedOcorrencia(null)}>
-                <div>
-                  <h3>Detalhes do Local</h3>
-                  <p><strong>Endereço:</strong> {selectedOcorrencia.enderecoOriginal}</p>
-                  <p><strong>Ocorrências:</strong> {selectedOcorrencia.count}</p>
-                  <p><strong>Últimas ocorrências:</strong></p>
-                  <ul>
-                    {selectedOcorrencia.ocorrencias.slice(0, 3).map((oc, i) => (
-                      <li key={i}>{oc.descricao || 'Sem descrição'}</li>
-                    ))}
-                    {selectedOcorrencia.ocorrencias.length > 3 && (
-                      <li>... e mais {selectedOcorrencia.ocorrencias.length - 3}</li>
-                    )}
-                  </ul>
-                </div>
-              </InfoWindow>
-            )}
+         {selectedOcorrencia && (
+  <InfoWindow
+    position={selectedOcorrencia.coordenadas}
+    onCloseClick={() => setSelectedOcorrencia(null)}
+  >
+    <div style={{ maxWidth: '300px', maxHeight: '400px', overflowY: 'auto' }}>
+      <Typography variant="h6" gutterBottom>
+        {selectedOcorrencia.enderecoOriginal}
+      </Typography>
+      
+      <Box display="flex" justifyContent="space-between" mb={2}>
+        <Chip 
+          label={`${selectedOcorrencia.count} ocorrências`} 
+          color="primary" 
+          size="small" 
+        />
+        <Typography variant="body2">
+          Última: {formatarData(selectedOcorrencia.ultimaOcorrencia)}
+        </Typography>
+      </Box>
+
+      <Divider sx={{ my: 1 }} />
+
+      <List dense sx={{ py: 0 }}>
+        {selectedOcorrencia.ocorrencias
+          .sort((a, b) => (b.timestamp?.seconds || b.timestamp) - (a.timestamp?.seconds || a.timestamp))
+          .map((ocorrencia, index) => (
+            <ListItem 
+              key={index} 
+              divider={index < selectedOcorrencia.ocorrencias.length - 1}
+              sx={{ py: 1, px: 0 }}
+            >
+              <ListItemText
+                primary={
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatarData(ocorrencia.timestamp)}
+                  </Typography>
+                }
+                secondary={
+                  <>
+                    <Typography variant="body2" component="span" display="block">
+                      {ocorrencia.descricao || "Sem descrição"}
+                    </Typography>
+                    <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                      {ocorrencia.tipo && (
+                        <Chip 
+                          label={ocorrencia.tipo} 
+                          size="small" 
+                          variant="outlined" 
+                        />
+                      )}
+                      {ocorrencia.status && (
+                        <Chip
+                          label={ocorrencia.status}
+                          size="small"
+                          color={
+                            ocorrencia.status.toLowerCase() === 'resolvido' ? 'success' :
+                            ocorrencia.status.toLowerCase() === 'pendente' ? 'warning' : 'default'
+                          }
+                        />
+                      )}
+                    </Box>
+                  </>
+                }
+              />
+            </ListItem>
+          ))}
+      </List>
+    </div>
+  </InfoWindow>
+)}
+
+          
+
+
           </GoogleMap>
         )}
       </LoadScript>
 
       <Box mt={4}>
         <Typography variant="h6" gutterBottom>Endereços com Mais Ocorrências</Typography>
-        
+
         {enderecosAgrupados.length === 0 ? (
           <Typography>Nenhuma ocorrência com endereço encontrada.</Typography>
         ) : (
@@ -227,10 +332,16 @@ const MapaOcorrencias = () => {
               <ListItem key={endereco.id} divider sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
                 <ListItemText
                   primary={`${index + 1}. ${endereco.enderecoOriginal}`}
-                  secondary={`${endereco.count} ocorrência(s)`}
+                  secondary={
+                    <>
+                      <span>{endereco.count} ocorrência(s)</span>
+                      <br />
+                      <span>Última ocorrência: {formatarData(endereco.ultimaOcorrencia)}</span>
+                    </>
+                  }
                 />
-                <Chip 
-                  label={endereco.count} 
+                <Chip
+                  label={endereco.count}
                   color={endereco.count > 20 ? 'error' : endereco.count > 10 ? 'warning' : 'primary'}
                 />
               </ListItem>

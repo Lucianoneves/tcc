@@ -247,7 +247,7 @@ function RegistroProblemas() {
         observacoes,
         status: 'Pendente',
         data: dataFormatada,
-        
+
 
       };
 
@@ -698,7 +698,7 @@ function RegistroProblemas() {
           margin="normal"
         />
 
-      
+
 
         <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
           <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
