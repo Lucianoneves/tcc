@@ -6,61 +6,53 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../services/firebaseConnection';
-// eslint-disable-next-line no-unused-vars
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore'; // Adicionado orderBy e limit
+import { collection, query, getDocs, orderBy, limit, where } from 'firebase/firestore'; // Adicionado 'where'
 
 function AdminAvaliacaoFeedback() {
     const navigate = useNavigate();
-    const [feedbacks, setFeedbacks] = useState([]);
+    const [feedbacksExibidos, setFeedbacksExibidos] = useState([]); // Mudado o nome para evitar confusão
     const [loading, setLoading] = useState(true);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState('error');
 
     useEffect(() => {
-        // Verifica se o usuário logado é um administrador
         const isAdmin = localStorage.getItem('isAdmin') === 'true';
         if (!isAdmin) {
-            navigate('/adminPage'); // Redireciona se não for administrador
+            navigate('/adminPage');
             return;
         }
 
         const fetchAllFeedbacks = async () => {
             setLoading(true);
             try {
-                const ocorrenciasRef = collection(db, 'ocorrencias');
-                // Busca todas as ocorrências que possuem avaliação ou comentário
-                // Ordena pela data da avaliação mais recente ou pela data da ocorrência
+                const avaliacoesRef = collection(db, 'avaliacoesFeedback');
+                // Consulta para buscar TODAS as avaliações e comentários
+                // que contenham pelo menos um campo 'avaliacao' ou 'comentario'.
+                // O orderBy('dataAvaliacao', 'desc') ajuda a trazer os mais recentes primeiro.
                 const q = query(
-                    ocorrenciasRef,
-                    orderBy('dataAvaliacao', 'desc'), // Tenta ordenar pela data da avaliação
-                    // Adicionar orderBy('data', 'desc') como secundário se 'dataAvaliacao' não existir em todos
+                    avaliacoesRef,
+                    orderBy('dataAvaliacao', 'desc')
+                    // Não podemos usar 'where' para 'OR' diretamente em Firestore para avaliacao OU comentario.
+                    // A filtragem será feita em memória.
                 );
                 const querySnapshot = await getDocs(q);
                 const feedbacksList = [];
                 querySnapshot.forEach(doc => {
                     const data = doc.data();
-                    if (data.avaliacao || data.comentario) { // Só adiciona se tiver avaliação ou comentário
+                    // Filtra em memória se a avaliação ou o comentário existe e não está vazio/0
+                    if ((data.avaliacao && data.avaliacao > 0) || (data.comentario && data.comentario.trim() !== '')) {
                         feedbacksList.push({
-                            id: doc.id,
+                            id: doc.id, // O ID do documento de avaliação é o ID da ocorrência (como definimos no setDoc)
                             ...data
                         });
                     }
                 });
 
-                // Se a ordenação por dataAvaliacao não for eficaz (alguns docs não têm),
-                // podemos fazer uma ordenação secundária em memória.
-                feedbacksList.sort((a, b) => {
-                    const dateA = new Date(a.dataAvaliacao || a.data);
-                    const dateB = new Date(b.dataAvaliacao || b.data);
-                    return dateB.getTime() - dateA.getTime();
-                });
-
-
-                setFeedbacks(feedbacksList);
+                setFeedbacksExibidos(feedbacksList);
             } catch (error) {
                 console.error('Erro ao buscar feedbacks:', error);
-                setSnackbarMessage('Erro ao carregar feedbacks.');
+                setSnackbarMessage('Erro ao carregar avaliações e feedbacks.');
                 setSnackbarSeverity('error');
                 setSnackbarOpen(true);
             } finally {
@@ -98,29 +90,34 @@ function AdminAvaliacaoFeedback() {
             </Box>
 
             <Paper elevation={3} sx={{ p: 3 }}>
-                {feedbacks.length === 0 ? (
+                {feedbacksExibidos.length === 0 ? (
                     <Typography variant="body1">Nenhuma avaliação ou feedback encontrado.</Typography>
                 ) : (
                     <List>
-                        {feedbacks.map((feedback) => (
+                        {feedbacksExibidos.map((feedback) => (
                             <React.Fragment key={feedback.id}>
                                 <ListItem alignItems="flex-start" sx={{ mb: 2 }}>
                                     <ListItemText
                                         primary={
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                                 <Typography variant="h6" component="span">
-                                                    Ocorrência: {feedback.descricao || 'Sem descrição'}
+                                                    Ocorrência: {feedback.descricaoOcorrencia || 'Sem descrição'} {/* Alterado para descricaoOcorrencia */}
                                                 </Typography>
-                                                {feedback.status && (
+                                                {/* O status da ocorrência original não está no documento de feedback.
+                                                    Se você quiser exibi-lo, precisaria buscar a ocorrência original ou
+                                                    salvar o status da ocorrência no documento de feedback.
+                                                    Por enquanto, vamos remover ou adaptar.
+                                                */}
+                                                {/* {feedback.status && (
                                                     <Chip
                                                         label={feedback.status}
                                                         color={
                                                             feedback.status.toLowerCase() === 'concluído' ? 'success' :
-                                                                feedback.status.toLowerCase() === 'em andamento' ? 'warning' : 'default'
+                                                            feedback.status.toLowerCase() === 'em andamento' ? 'warning' : 'default'
                                                         }
                                                         size="small"
                                                     />
-                                                )}
+                                                )} */}
                                             </Box>
                                         }
                                         secondary={
@@ -129,6 +126,13 @@ function AdminAvaliacaoFeedback() {
                                                     Usuário: {feedback.nomeUsuario || 'Usuário Desconhecido'}
                                                 </Typography>
                                                 <br />
+                                                <Typography component="span" variant="body2" color="text.secondary">
+                                                    ID da Ocorrência: {feedback.ocorrenciaId} {/* Útil para rastrear */}
+                                                </Typography>
+                                                {/* As datas originais da ocorrência (data e dataResolucao) não estão no documento de feedback.
+                                                    Você precisaria buscá-las da coleção 'ocorrencias' ou salvá-las no documento de feedback.
+                                                */}
+                                                {/*
                                                 <Typography component="span" variant="body2" color="text.secondary">
                                                     Registrado em: {new Date(feedback.data).toLocaleString()}
                                                 </Typography>
@@ -140,6 +144,8 @@ function AdminAvaliacaoFeedback() {
                                                         </Typography>
                                                     </>
                                                 )}
+                                                */}
+
                                                 {feedback.avaliacao > 0 && (
                                                     <Box display="flex" alignItems="center" mt={1}>
                                                         <Typography variant="body2" mr={1}>Avaliação:</Typography>

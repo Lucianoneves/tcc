@@ -2,17 +2,17 @@ import React, { useState, useEffect, useContext } from 'react';
 import {
     Container, Typography, Box, Button, TextField,
     Snackbar, Alert, Rating, List, ListItem, ListItemText,
-    Divider, Paper, CircularProgress, Chip, IconButton 
+    Divider, Paper, CircularProgress, Chip, IconButton
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../services/firebaseConnection';
-import { collection, query, where, getDocs, doc, updateDoc, deleteField  } from 'firebase/firestore';
-import { AuthContext } from '../contexts/auth'; // Assumindo que você tem um AuthContext
+import { collection, query, where, getDocs, doc, updateDoc, deleteField, setDoc } from 'firebase/firestore'; // Adicionado setDoc
+import { AuthContext } from '../contexts/auth';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function AvaliacaoFeedback() {
     const navigate = useNavigate();
-    const { user } = useContext(AuthContext); // Pega o usuário logado do contexto
+    const { user } = useContext(AuthContext);
     const [ocorrenciasResolvidas, setOcorrenciasResolvidas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -23,30 +23,52 @@ function AvaliacaoFeedback() {
     const [selectedOcorrenciaParaAvaliar, setSelectedOcorrenciaParaAvaliar] = useState(null);
 
     useEffect(() => {
-        // Redireciona para login se não houver usuário autenticado
         if (!user) {
             navigate('/login');
             return;
         }
 
-        const fetchOcorrenciasResolvidas = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
+                // 1. Buscar ocorrências CONCLUÍDAS do usuário
                 const ocorrenciasRef = collection(db, 'ocorrencias');
-                // Busca ocorrências do usuário logado que estão com status 'Concluído'
-                const q = query(ocorrenciasRef,
+                const qOcorrencias = query(ocorrenciasRef,
                     where('usuarioId', '==', user.uid),
                     where('status', '==', 'Concluído')
                 );
-                const querySnapshot = await getDocs(q);
-                const ocorrenciasList = querySnapshot.docs.map(doc => ({
+                const querySnapshotOcorrencias = await getDocs(qOcorrencias);
+                const ocorrenciasList = querySnapshotOcorrencias.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
-                setOcorrenciasResolvidas(ocorrenciasList);
+
+                // 2. Buscar avaliações/feedbacks existentes para essas ocorrências
+                const avaliacoesRef = collection(db, 'avaliacoesFeedback');
+                const qAvaliacoes = query(avaliacoesRef,
+                    where('usuarioId', '==', user.uid)
+                );
+                const querySnapshotAvaliacoes = await getDocs(qAvaliacoes);
+                const avaliacoesMap = new Map();
+                querySnapshotAvaliacoes.forEach(doc => {
+                    avaliacoesMap.set(doc.data().ocorrenciaId, doc.data());
+                });
+
+                // 3. Combinar ocorrências com suas respectivas avaliações
+                const ocorrenciasComAvaliacao = ocorrenciasList.map(ocorrencia => {
+                    const avaliacaoExistente = avaliacoesMap.get(ocorrencia.id);
+                    return {
+                        ...ocorrencia,
+                        avaliacao: avaliacaoExistente?.avaliacao || 0,
+                        comentario: avaliacaoExistente?.comentario || '',
+                        dataAvaliacao: avaliacaoExistente?.dataAvaliacao || ''
+                    };
+                });
+                setOcorrenciasResolvidas(ocorrenciasComAvaliacao);
+
             } catch (error) {
-                console.error('Erro ao buscar ocorrências resolvidas:', error);
-                setSnackbarMessage('Erro ao carregar ocorrências.');
+                console.error('Erro ao buscar dados:', error);
+                setSnackbarMessage('Erro ao carregar ocorrências e avaliações.');
                 setSnackbarSeverity('error');
                 setSnackbarOpen(true);
             } finally {
@@ -54,12 +76,11 @@ function AvaliacaoFeedback() {
             }
         };
 
-        fetchOcorrenciasResolvidas();
+        fetchData();
     }, [user, navigate]);
 
     const handleOpenAvaliacao = (ocorrencia) => {
         setSelectedOcorrenciaParaAvaliar(ocorrencia);
-        // Preenche os campos se já houver avaliação e comentário salvos
         setCurrentRating(ocorrencia.avaliacao || 0);
         setCurrentComment(ocorrencia.comentario || '');
     };
@@ -69,14 +90,23 @@ function AvaliacaoFeedback() {
 
         setLoading(true);
         try {
-            const ocorrenciaRef = doc(db, 'ocorrencias', selectedOcorrenciaParaAvaliar.id);
-            await updateDoc(ocorrenciaRef, {
+            const avaliacaoDocRef = doc(db, 'avaliacoesFeedback', selectedOcorrenciaParaAvaliar.id); // Usamos o ID da ocorrência como ID do documento de avaliação
+
+          await setDoc(avaliacaoDocRef, {
+                ocorrenciaId: selectedOcorrenciaParaAvaliar.id,
+                usuarioId: user.uid,
+                nomeUsuario: user.nome || selectedOcorrenciaParaAvaliar.nomeUsuario,
+                descricaoOcorrencia: selectedOcorrenciaParaAvaliar.descricao,
                 avaliacao: currentRating,
                 comentario: currentComment,
-                dataAvaliacao: new Date().toISOString() // Adiciona data da avaliação
-            });
+                dataAvaliacao: new Date().toISOString()
+            }, { merge: true });
 
-            // Atualiza o estado local das ocorrências
+            // Opcional: Se quiser guardar a data da avaliação na própria ocorrência, mantemos
+            // await updateDoc(doc(db, 'ocorrencias', selectedOcorrenciaParaAvaliar.id), {
+            //     dataUltimaAvaliacao: new Date().toISOString() // Novo campo na ocorrência
+            // });
+
             setOcorrenciasResolvidas(prev =>
                 prev.map(oc =>
                     oc.id === selectedOcorrenciaParaAvaliar.id
@@ -88,7 +118,7 @@ function AvaliacaoFeedback() {
             setSnackbarMessage('Avaliação e comentário salvos com sucesso!');
             setSnackbarSeverity('success');
             setSnackbarOpen(true);
-            setSelectedOcorrenciaParaAvaliar(null); // Fecha a seção de avaliação
+            setSelectedOcorrenciaParaAvaliar(null);
             setCurrentRating(0);
             setCurrentComment('');
         } catch (error) {
@@ -101,10 +131,7 @@ function AvaliacaoFeedback() {
         }
     };
 
-
-
-     const handleDeleteAvaliacao = async (ocorrenciaId) => {
-        // Confirmação para evitar exclusões acidentais
+    const handleDeleteAvaliacao = async (ocorrenciaId) => {
         const confirmacao = window.confirm("Tem certeza que deseja remover sua avaliação e comentário desta ocorrência?");
         if (!confirmacao) {
             return;
@@ -112,18 +139,19 @@ function AvaliacaoFeedback() {
 
         setLoading(true);
         try {
-            const ocorrenciaRef = doc(db, 'ocorrencias', ocorrenciaId);
-            await updateDoc(ocorrenciaRef, {
-                avaliacao: deleteField(),    // Remove o campo 'avaliacao'
-                comentario: deleteField(),   // Remove o campo 'comentario'
-                dataAvaliacao: deleteField() // Remove o campo 'dataAvaliacao'
+            const avaliacaoDocRef = doc(db, 'avaliacoesFeedback', ocorrenciaId); // O ID da avaliação é o ID da ocorrência
+
+            // Para "deletar" a avaliação e o comentário, vamos remover os campos do documento de avaliação
+            await updateDoc(avaliacaoDocRef, {
+                avaliacao: deleteField(),
+                comentario: deleteField(),
+                dataAvaliacao: deleteField()
             });
 
-            // Atualiza o estado local para remover a avaliação/comentário
             setOcorrenciasResolvidas(prev =>
                 prev.map(oc =>
                     oc.id === ocorrenciaId
-                        ? { ...oc, avaliacao: 0, comentario: '', dataAvaliacao: '' } // Define como vazio/0
+                        ? { ...oc, avaliacao: 0, comentario: '', dataAvaliacao: '' }
                         : oc
                 )
             );
@@ -156,13 +184,13 @@ function AvaliacaoFeedback() {
         );
     }
 
-     return (
+    return (
         <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h4" gutterBottom>
                     Avaliação e Feedback
                 </Typography>
-                <Button variant="contained" onClick={() => navigate('/perfil')}> {/* Corrigido: /perfil para /perfilUsuario */}
+                <Button variant="contained" onClick={() => navigate('/perfil')}>
                     Voltar ao Perfil
                 </Button>
             </Box>
@@ -177,7 +205,7 @@ function AvaliacaoFeedback() {
                     <List>
                         {ocorrenciasResolvidas.map((ocorrencia) => (
                             <React.Fragment key={ocorrencia.id}>
-                                <ListItem alignItems="flex-start" sx={{ justifyContent: 'space-between' }}> {/* Adicionado justifyContent */}
+                                <ListItem alignItems="flex-start" sx={{ justifyContent: 'space-between' }}>
                                     <ListItemText
                                         primary={`Ocorrência: ${ocorrencia.descricao}`}
                                         secondary={
@@ -192,12 +220,11 @@ function AvaliacaoFeedback() {
                                                         size="small"
                                                     />
                                                 </Box>
-                                                {/* As <br /> e Typography foram corrigidas para ficar dentro do Box */}
-                                                <Typography component="span" variant="body2" color="text.secondary" display="block"> {/* Adicionado display="block" */}
+                                                <Typography component="span" variant="body2" color="text.secondary" display="block">
                                                     Registrado em: {new Date(ocorrencia.data).toLocaleString()}
                                                 </Typography>
                                                 {ocorrencia.dataResolucao && (
-                                                    <Typography component="span" variant="body2" color="text.secondary" display="block"> {/* Adicionado display="block" */}
+                                                    <Typography component="span" variant="body2" color="text.secondary" display="block">
                                                         Concluído em: {new Date(ocorrencia.dataResolucao).toLocaleString()}
                                                     </Typography>
                                                 )}
@@ -224,7 +251,6 @@ function AvaliacaoFeedback() {
                                         >
                                             {ocorrencia.avaliacao ? 'Editar Avaliação' : 'Avaliar'}
                                         </Button>
-                                        {/* IconButton de exclusão CONDICIONALMENTE renderizado e posicionado corretamente */}
                                         {(ocorrencia.avaliacao > 0 || ocorrencia.comentario) && (
                                             <IconButton
                                                 aria-label="deletar avaliação"
@@ -237,7 +263,6 @@ function AvaliacaoFeedback() {
                                         )}
                                     </Box>
                                 </ListItem>
-                                {/* Bloco de avaliação/edição para a ocorrência selecionada */}
                                 {selectedOcorrenciaParaAvaliar?.id === ocorrencia.id && (
                                     <Box sx={{ p: 2, border: '1px solid #ddd', borderRadius: '4px', mt: 1, mb: 2 }}>
                                         <Typography variant="h6" gutterBottom>Avaliar Ocorrência: {ocorrencia.descricao}</Typography>
@@ -292,12 +317,16 @@ function AvaliacaoFeedback() {
                 <Typography variant="body1" sx={{ mb: 2 }}>
                     Ajude-nos a melhorar! Responda à nossa pesquisa rápida sobre sua experiência geral.
                 </Typography>
-                <Button variant="contained" color="secondary" onClick={() => alert('Abrir formulário de pesquisa')}>
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => navigate('/pesquisaSatisfacao')} // <--- Alterado aqui
+                >
                     Participar da Pesquisa
                 </Button>
             </Paper>
 
-            {/* Seção de Comentários Públicos (Exemplo: comentários de todas as ocorrências) */}
+            {/* Seção de Comentários Públicos (Geral) */}
             <Paper elevation={3} sx={{ p: 3 }}>
                 <Typography variant="h5" gutterBottom>
                     Comentários Recentes (Geral)

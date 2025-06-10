@@ -441,6 +441,15 @@ const Ocorrencias = () => {
                 Ver Avaliações e Feedbacks
             </Button>
 
+            <Button
+                onClick={() => navigate('/adminPesquisas')} // Novo botão para pesquisas
+                variant="contained"
+                color="secondary" // Ou outra cor de sua preferência
+                style={{ margin: '8px' }}
+            >
+                Ver Respostas das Pesquisas
+            </Button>
+
             <Snackbar
                 open={snackbarOpen}
                 autoHideDuration={6000}

@@ -20,6 +20,8 @@ import PerfilUsuario from './pages/perfilUsuario';
 import OcorrenciasMes from './pages/ocorrenciasMes';
 import AvaliacaoFeedback from './pages/avaliacaoFeedback';
 import AdminAvaliacaoFeedback from './pages/adminAvaliacaoFeedback';
+import PesquisaSatisfacao from './pages/pesquisaSatisfafacao';
+import AdminPesquisas from './pages/adminPesquisas';
 
 
 
@@ -48,8 +50,9 @@ function App() {
                     <Route path="/MapaOcorrencias" element={<MapaOcorrencias />} /> 
                     <Route path="/avaliacaoFeedback" element={<AvaliacaoFeedback />} />
                     <Route path="/adminAvaliacaoFeedback" element={<AdminAvaliacaoFeedback />} />
-                   
-              
+                    <Route path="/pesquisaSatisfacao" element={<PesquisaSatisfacao />} />
+                    <Route path="/adminPesquisas" element={<AdminPesquisas />} />
+
                 </Routes>
             </AuthProvider>
         </Router>
