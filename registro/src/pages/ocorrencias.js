@@ -136,7 +136,6 @@ const Ocorrencias = () => {
         if (ocorrenciasSalvas && Array.isArray(usuarios) && usuarios.length > 0) {
             const ocorrencias = JSON.parse(ocorrenciasSalvas);
             const ocorrenciasComUsuarios = ocorrencias.map((ocorrencia) => {
-                const usuarioEncontrado = usuarios.find((u) => u.id === ocorrencia.usuarioId);
                 return {
                     ...ocorrencia,
                     nomeUsuario: ocorrencia.nomeUsuario || "Usuário desconhecido",
@@ -188,6 +187,7 @@ const Ocorrencias = () => {
                     descricao: descricaoEditada,
                     images: images,
                     status: statusEditado,
+                    dataResolucao: new Date().toISOString(),
                     tarefaEditada: tarefaEditada,
                     dataTarefaExecutada: new Date().toISOString(),
                     categoria: categoriaEditada,
@@ -206,41 +206,6 @@ const Ocorrencias = () => {
         setSnackbarOpen(true);
     };
 
-    const handleExecucao = async () => {
-        if (ocorrenciaExecutada.trim()) {
-            const nova = {
-                descricao: ocorrenciaExecutada,
-                dataTarefaExecutada: new Date().toISOString(),
-                status: 'Pendente',
-                data: new Date().toISOString(),
-                usuarioId: user.uid,
-                nomeUsuario: user.displayName || "Usuário sem nome",
-                localizacao: 'Rua XYZ, Bairro ABC',
-                observacoes,
-                tarefaEditada: tarefaEditada,
-                images: images,
-                categoria: categoria,
-                gravidade: gravidade
-            };
-
-            try {
-                const docRef = await addDoc(collection(db, "ocorrencias"), nova);
-                setOcorrencias((prev) => [...prev, { id: docRef.id, ...nova }]);
-                setOcorrenciaExecutada('');
-                setSnackbarMessage('Ocorrência adicionada com sucesso!');
-                setSnackbarSeverity('success');
-            } catch (error) {
-                console.error("Erro ao adicionar ocorrência:", error);
-                setSnackbarMessage('Erro ao adicionar a ocorrência.');
-                setSnackbarSeverity('error');
-            }
-            setSnackbarOpen(true);
-        } else {
-            setSnackbarMessage('Descreva a ocorrência antes de enviar.');
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
-        }
-    };
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
@@ -264,19 +229,6 @@ const Ocorrencias = () => {
         return () => unsubscribe();
     }, []);
 
-    const handleSubmit = () => {
-        const ocorrenciasComData = ocorrencias.filter((ocorrencia) =>
-            selecionadas.includes(ocorrencia.id)
-        ).map((ocorrencia) => ({
-            ...ocorrencia,
-            data: ocorrencia
-        }));
-
-        setDescricaoVisible(false);
-        setSnackbarMessage('Ocorrências enviadas com sucesso!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-    };
 
     const handleCheckboxChange = (id) => {
         setSelecionadas((prevSelecionadas) =>
@@ -299,54 +251,7 @@ const Ocorrencias = () => {
         navigate('/login');
     };
 
-    const handleRemoverArquivo = async (id, fileURL) => {
-        const fileRef = ref(storage, fileURL);
-        try {
-            await deleteObject(fileRef);
-            setOcorrencias((prev) =>
-                prev.map((ocorrencia) =>
-                    ocorrencia.id === id
-                        ? { ...ocorrencia, media: ocorrencia.media.filter((url) => url !== fileURL) }
-                        : ocorrencia
-                )
-            );
-            setSnackbarMessage('Arquivo removido com sucesso!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
-        } catch (error) {
-            console.error("Erro ao remover o arquivo: ", error);
-            setSnackbarMessage('Erro ao remover o arquivo.');
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
-        }
-    };
 
-    const handleAddImage = async (ocorrenciaId, event) => {
-        if (!event.target.files || event.target.files.length === 0) return;
-
-        const file = event.target.files[0];
-        if (!file.type.match('image.*')) {
-            toast.error('Apenas arquivos de imagem são permitidos (JPEG, PNG, etc.)');
-            return;
-        }
-
-        try {
-            const storageRef = ref(storage, `ocorrencias/${ocorrenciaId}/${file.name}`);
-            await uploadBytes(storageRef, file);
-
-            const imageURL = await getDownloadURL(storageRef);
-
-            setImagensPorOcorrencia(prev => ({
-                ...prev,
-                [ocorrenciaId]: [...(prev[ocorrenciaId] || []), { url: imageURL }]
-            }));
-
-            toast.success('Imagem enviada com sucesso!');
-        } catch (error) {
-            console.error("Erro ao enviar imagem:", error);
-            toast.error('Falha no upload. Tente novamente.');
-        }
-    };
 
 
     return (
@@ -525,6 +430,15 @@ const Ocorrencias = () => {
                 style={{ margin: '8px' }}
             >
                 Ver Mapa de Ocorrências
+            </Button>
+
+            <Button
+                onClick={() => navigate('/adminAvaliacaoFeedback')} // Novo botão
+                variant="contained"
+                color="info" // Ou outra cor de sua preferência
+                style={{ margin: '8px' }}
+            >
+                Ver Avaliações e Feedbacks
             </Button>
 
             <Snackbar

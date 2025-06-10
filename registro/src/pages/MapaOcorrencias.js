@@ -99,24 +99,24 @@ const MapaOcorrencias = () => {
       }
 
       // Adiciona TODOS os dados da ocorrência ao grupo
-    agrupamento[enderecoNormalizado].ocorrencias.push({
-      ...ocorrencia, // Mantém todos os campos originais
-      timestamp: ocorrencia.timestamp || ocorrencia.data || ocorrencia.createdAt,
-    });
-    
-    agrupamento[enderecoNormalizado].count++;
-    
-    // Atualiza a última ocorrência
-    const dataOcorrencia = ocorrencia.timestamp || ocorrencia.data || ocorrencia.createdAt;
-    if (dataOcorrencia) {
-      if (!agrupamento[enderecoNormalizado].ultimaOcorrencia || 
-          dataOcorrencia > agrupamento[enderecoNormalizado].ultimaOcorrencia) {
-        agrupamento[enderecoNormalizado].ultimaOcorrencia = dataOcorrencia;
-      }
-    } 
-  });
+      agrupamento[enderecoNormalizado].ocorrencias.push({
+        ...ocorrencia, // Mantém todos os campos originais
+        timestamp: ocorrencia.timestamp || ocorrencia.data || ocorrencia.createdAt,
+      });
 
-    
+      agrupamento[enderecoNormalizado].count++;
+
+      // Atualiza a última ocorrência
+      const dataOcorrencia = ocorrencia.timestamp || ocorrencia.data || ocorrencia.createdAt;
+      if (dataOcorrencia) {
+        if (!agrupamento[enderecoNormalizado].ultimaOcorrencia ||
+          dataOcorrencia > agrupamento[enderecoNormalizado].ultimaOcorrencia) {
+          agrupamento[enderecoNormalizado].ultimaOcorrencia = dataOcorrencia;
+        }
+      }
+    });
+
+
 
     const enderecosAgrupadosArray = Object.values(agrupamento).sort((a, b) => b.count - a.count);
 
@@ -189,7 +189,7 @@ const MapaOcorrencias = () => {
 
   if (loading) {
 
-    
+
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
         <CircularProgress />
@@ -242,79 +242,79 @@ const MapaOcorrencias = () => {
               />
             ))}
 
-         {selectedOcorrencia && (
-  <InfoWindow
-    position={selectedOcorrencia.coordenadas}
-    onCloseClick={() => setSelectedOcorrencia(null)}
-  >
-    <div style={{ maxWidth: '300px', maxHeight: '400px', overflowY: 'auto' }}>
-      <Typography variant="h6" gutterBottom>
-        {selectedOcorrencia.enderecoOriginal}
-      </Typography>
-      
-      <Box display="flex" justifyContent="space-between" mb={2}>
-        <Chip 
-          label={`${selectedOcorrencia.count} ocorrências`} 
-          color="primary" 
-          size="small" 
-        />
-        <Typography variant="body2">
-          Última: {formatarData(selectedOcorrencia.ultimaOcorrencia)}
-        </Typography>
-      </Box>
-
-      <Divider sx={{ my: 1 }} />
-
-      <List dense sx={{ py: 0 }}>
-        {selectedOcorrencia.ocorrencias
-          .sort((a, b) => (b.timestamp?.seconds || b.timestamp) - (a.timestamp?.seconds || a.timestamp))
-          .map((ocorrencia, index) => (
-            <ListItem 
-              key={index} 
-              divider={index < selectedOcorrencia.ocorrencias.length - 1}
-              sx={{ py: 1, px: 0 }}
-            >
-              <ListItemText
-                primary={
-                  <Typography variant="body2" fontWeight="bold">
-                    {formatarData(ocorrencia.timestamp)}
+            {selectedOcorrencia && (
+              <InfoWindow
+                position={selectedOcorrencia.coordenadas}
+                onCloseClick={() => setSelectedOcorrencia(null)}
+              >
+                <div style={{ maxWidth: '300px', maxHeight: '400px', overflowY: 'auto' }}>
+                  <Typography variant="h6" gutterBottom>
+                    {selectedOcorrencia.enderecoOriginal}
                   </Typography>
-                }
-                secondary={
-                  <>
-                    <Typography variant="body2" component="span" display="block">
-                      {ocorrencia.descricao || "Sem descrição"}
-                    </Typography>
-                    <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                      {ocorrencia.tipo && (
-                        <Chip 
-                          label={ocorrencia.tipo} 
-                          size="small" 
-                          variant="outlined" 
-                        />
-                      )}
-                      {ocorrencia.status && (
-                        <Chip
-                          label={ocorrencia.status}
-                          size="small"
-                          color={
-                            ocorrencia.status.toLowerCase() === 'resolvido' ? 'success' :
-                            ocorrencia.status.toLowerCase() === 'pendente' ? 'warning' : 'default'
-                          }
-                        />
-                      )}
-                    </Box>
-                  </>
-                }
-              />
-            </ListItem>
-          ))}
-      </List>
-    </div>
-  </InfoWindow>
-)}
 
-          
+                  <Box display="flex" justifyContent="space-between" mb={2}>
+                    <Chip
+                      label={`${selectedOcorrencia.count} ocorrências`}
+                      color="primary"
+                      size="small"
+                    />
+                    <Typography variant="body2">
+                      Última: {formatarData(selectedOcorrencia.ultimaOcorrencia)}
+                    </Typography>
+                  </Box>
+
+                  <Divider sx={{ my: 1 }} />
+
+                  <List dense sx={{ py: 0 }}>
+                    {selectedOcorrencia.ocorrencias
+                      .sort((a, b) => (b.timestamp?.seconds || b.timestamp) - (a.timestamp?.seconds || a.timestamp))
+                      .map((ocorrencia, index) => (
+                        <ListItem
+                          key={index}
+                          divider={index < selectedOcorrencia.ocorrencias.length - 1}
+                          sx={{ py: 1, px: 0 }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Typography variant="body2" fontWeight="bold">
+                                {formatarData(ocorrencia.timestamp)}
+                              </Typography>
+                            }
+                            secondary={
+                              <>
+                                <Typography variant="body2" component="span" display="block">
+                                  {ocorrencia.descricao || "Sem descrição"}
+                                </Typography>
+                                <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                                  {ocorrencia.tipo && (
+                                    <Chip
+                                      label={ocorrencia.tipo}
+                                      size="small"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                  {ocorrencia.status && (
+                                    <Chip
+                                      label={ocorrencia.status}
+                                      size="small"
+                                      color={
+                                        ocorrencia.status.toLowerCase() === 'resolvido' ? 'success' :
+                                          ocorrencia.status.toLowerCase() === 'pendente' ? 'warning' : 'default'
+                                      }
+                                    />
+                                  )}
+                                </Box>
+                              </>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                  </List>
+                </div>
+              </InfoWindow>
+            )}
+
+
 
 
           </GoogleMap>

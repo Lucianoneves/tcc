@@ -18,6 +18,8 @@ import Private from './routes/Private'
 import ProtectedRoute from "./routes/protectedRouter";
 import PerfilUsuario from './pages/perfilUsuario';
 import OcorrenciasMes from './pages/ocorrenciasMes';
+import AvaliacaoFeedback from './pages/avaliacaoFeedback';
+import AdminAvaliacaoFeedback from './pages/adminAvaliacaoFeedback';
 
 
 
@@ -44,6 +46,9 @@ function App() {
                     <Route path="/ocorrencias" element={<Ocorrencias />} />
                     <Route path="/adminPage" element={<AdminPage />} />
                     <Route path="/MapaOcorrencias" element={<MapaOcorrencias />} /> 
+                    <Route path="/avaliacaoFeedback" element={<AvaliacaoFeedback />} />
+                    <Route path="/adminAvaliacaoFeedback" element={<AdminAvaliacaoFeedback />} />
+                   
               
                 </Routes>
             </AuthProvider>
