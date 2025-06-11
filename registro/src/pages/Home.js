@@ -123,6 +123,30 @@ function Home() {
                         borderRadius: 2
                     }}
                 >
+
+                    
+<Box sx={{ my: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Typography variant="h6" component="p" sx={{ fontWeight: 'bold' }}>
+        Por que usar o SMU?
+    </Typography>
+    <Box display="flex" justifyContent="center" flexWrap="wrap" gap={3}>
+        <Box sx={{ textAlign: 'center', maxWidth: '180px' }}>
+            <i class="material-icons" style={{ fontSize: '48px', color: theme.palette.primary.main }}></i>
+            <Typography variant="subtitle1" sx={{ mt: 1 }}>Soluções Rápidas</Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>Agilidade na resolução de problemas urbanos.</Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center', maxWidth: '180px' }}>
+            <i class="material-icons" style={{ fontSize: '48px', color: theme.palette.primary.main }}></i>
+            <Typography variant="subtitle1" sx={{ mt: 1 }}>Sua Voz Importa</Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>Contribua diretamente para a melhoria da sua região.</Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center', maxWidth: '180px' }}>
+            <i class="material-icons" style={{ fontSize: '48px', color: theme.palette.primary.main }}></i>
+            <Typography variant="subtitle1" sx={{ mt: 1 }}>Acompanhamento Completo</Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>Monitore o status das suas ocorrências em tempo real.</Typography>
+        </Box>
+    </Box>
+</Box>
                     <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
                         Siga-nos ou entre em contato:
                     </Typography>

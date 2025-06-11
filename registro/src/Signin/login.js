@@ -43,10 +43,7 @@ function Login() {
 
     try {
       await login(email, senha); // Chama a função de login do contexto
-      await addDoc(collection(db, "login"), {
-        email: email,
-        senha: senha
-      })
+    
       navigate("/perfil"); // Redireciona para o dashboard após login bem-sucedido
     } catch (error) {
       console.error("Erro ao fazer login: ", error);
@@ -65,7 +62,7 @@ function Login() {
   // Função para remover os dados do Firestore ao excluir o usuário
   const removerDadosLogin = async (email) => {
     try {
-      // Cria uma referência para a coleção "login"
+      // Cria uma rehandleSubmiterência para a coleção "login"
       const q = query(collection(db, "login"), where("email", "==", email));
       const querySnapshot = await getDocs(q);
 

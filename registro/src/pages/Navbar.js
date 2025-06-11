@@ -30,11 +30,7 @@ function Navbar() {
 
               
                 
-                <li>
-                    <button onClick={handleRegistroProblemasClick} className="link-button">
-                        Registrar Problema
-                    </button>
-                </li>
+              
 
 
                 

@@ -2,7 +2,8 @@
 .home-container {
     text-align: center;
     padding: 2rem;
-    background-color: #f0f8ff;
+  
+background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7));
 }
 
 .home-title {
@@ -11,6 +12,6 @@
 }
 
 .home-description {
-    font-size: 1.2rem;
+    font-size: 1.2rem; 
     color: #666;
 }
