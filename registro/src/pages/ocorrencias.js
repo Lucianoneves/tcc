@@ -1,17 +1,25 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/jsx-no-undef */
+
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, Divider, MenuItem, Box, IconButton } from '@mui/material'; // Importando componentes do Material-UI
+import { Container, Typography, Checkbox, Button, TextField, Snackbar, List, ListItem, ListItemText, Divider, MenuItem, Box, IconButton, Paper, CircularProgress, Chip } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
-import Chip from '@mui/material/Chip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { db, storage } from "../services/firebaseConnection";
 import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
 import { getAuth } from "firebase/auth";
+// eslint-disable-next-line no-unused-vars
 import MapaOcorrencias from './MapaOcorrencias';
+// eslint-disable-next-line no-unused-vars
 import { saveImage, getImages, deleteImage } from "./imageDB";
+import * as THREE from 'three';
+// Importe OrbitControls para permitir arrastar e girar a cena
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
 
 const Alert = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -51,48 +59,163 @@ const GRAVIDADE = ['Baixa', 'Média', 'Alta'];
 
 const Ocorrencias = () => {
     const navigate = useNavigate();
-    const [mostrarMapa, setMostrarMapa] = useState(false);
     const [ocorrencias, setOcorrencias] = useState([]);
-    const [descricaoVisible, setDescricaoVisible] = useState(false);
-    const [ocorrenciaExecutada, setOcorrenciaExecutada] = useState('');
-    const [dataTarefaEditada, setDataTarefaEditada] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState('success');
     const [descricaoEditada, setdescricaoEditada] = useState('');
     const [tarefaEditada, setTarefaEditada] = useState('');
     const [statusEditado, setStatusEditado] = useState('');
     const [editandoOcorrencia, setEditandoOcorrencia] = useState(null);
     const [selecionadas, setSelecionadas] = useState([]);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
     const auth = getAuth();
     const user = auth.currentUser;
-    const [observacoes, setObservacoes] = useState('');
-    const [ocorrenciaSelecionada, setOcorrenciaSelecionada] = useState(null);
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [adminNome, setAdminNome] = useState('');
-    const [usuarios, setUsuarios] = useState();
-    const [userNome, setUserNome] = useState('');
-    const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({}); // Estado para armazenar as imagens por ocorrência    
-    const [images, setImages] = useState('');
-    const [o, setO] = useState({});
-    const [imagem, setImagem] = useState(null);
-    const [imagemURL, setImagemURL] = useState(null);
-    const { imagens, setImagens } = useState(null);
-    const [ocorrencia, setOcorrencia] = useState(null);
-    const [img, setImg] = useState(null);
-    const [imgURL, setImgURL] = useState(null);
-    const [categoria, setCategoria] = useState('');
-    const [gravidade, setGravidade] = useState('');
+    const [imagensPorOcorrencia, setImagensPorOcorrencia] = useState({});
     const [categoriaEditada, setCategoriaEditada] = useState('');
     const [gravidadeEditada, setGravidadeEditada] = useState('');
 
+    const [mostrarGraficos3D, setMostrarGraficos3D] = useState(false);
+    const mountRef3D = useRef(null);
+
+    const [dadosGraficoPorCategoria, setDadosGraficoPorCategoria] = useState({});
+    const [dadosGraficoPorStatus, setDadosGraficoPorStatus] = useState({});
+    const [dadosGraficoPorGravidade, setDadosGraficoPorGravidade] = useState({});
+    const [adminNome, setAdminNome] = useState('');
+    const [dataTarefaEditada, setDataTarefaEditada] = useState('');
 
 
+    // Função para obter uma cor baseada no status ou gravidade
+    const getColorForData = (key, type) => {
+        if (type === 'status') {
+            switch (key) {
+                case 'Concluído': return 0x4CAF50; // Verde
+                case 'Em Andamento': return 0xFFA500; // Laranja
+                case 'Pendente': return 0xF44336; // Vermelho
+                default: return 0x9E9E9E; // Cinza
+            }
+        } else if (type === 'gravidade') {
+            switch (key) {
+                case 'Alta': return 0xF44336; // Vermelho
+                case 'Média': return 0xFFA500; // Laranja
+                case 'Baixa': return 0x4CAF50; // Verde
+                default: return 0x9E9E9E; // Cinza
+            }
+        }
+        return Math.random() * 0xffffff; // Cor aleatória para categorias
+    };
 
 
-    const handleNavigateToMap = () => {
-        navigate('/MapaOcorrencias');
+    const renderizarCena3D = (dataCategoria, dataStatus, dataGravidade) => {
+        if (!mountRef3D.current) {
+            console.error("renderizarCena3D: mountRef3D.current é null.");
+            return;
+        }
+
+        while (mountRef3D.current.firstChild) {
+            mountRef3D.current.removeChild(mountRef3D.current.firstChild);
+        }
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        const width = mountRef3D.current.clientWidth;
+        const height = mountRef3D.current.clientHeight;
+
+        if (width === 0 || height === 0) {
+            console.warn("renderizarCena3D: Largura ou altura do canvas é zero. Não vai renderizar a cena 3D.");
+            return;
+        }
+
+        const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        mountRef3D.current.appendChild(renderer.domElement);
+
+        // Controles de órbita para interação
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; // para um movimento mais suave
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 10;
+        controls.maxDistance = 50;
+
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
+
+        // === GRÁFICO POR CATEGORIA ===
+
+        // === GRÁFICO POR STATUS ===
+        const maxStatusCount = Math.max(...Object.values(dataStatus));
+        const statusScale = 5 / maxStatusCount;
+
+        let xOffsetStatus = -10; // Posição inicial
+        Object.entries(dataStatus).forEach(([status, count]) => {
+            const barHeight = count * statusScale;
+            const geometry = new THREE.BoxGeometry(1.5, barHeight, 1.5);
+            const material = new THREE.MeshLambertMaterial({ color: getColorForData(status, 'status') });
+            const bar = new THREE.Mesh(geometry, material);
+            bar.position.set(xOffsetStatus, barHeight / 2, 0); // No meio
+            scene.add(bar);
+            xOffsetStatus += 2.5;
+        });
+
+        // === GRÁFICO POR GRAVIDADE ===
+        const maxGravidadeCount = Math.max(...Object.values(dataGravidade));
+        const gravidadeScale = 5 / maxGravidadeCount;
+
+        let xOffsetGravidade = -10; // Posição inicial
+        Object.entries(dataGravidade).forEach(([gravidade, count]) => {
+            const barHeight = count * gravidadeScale;
+            const geometry = new THREE.BoxGeometry(1.5, barHeight, 1.5);
+            const material = new THREE.MeshLambertMaterial({ color: getColorForData(gravidade, 'gravidade') });
+            const bar = new THREE.Mesh(geometry, material);
+            bar.position.set(xOffsetGravidade, barHeight / 2, 5); // Mais para frente
+            scene.add(bar);
+            xOffsetGravidade += 2.5;
+        });
+
+
+        // Posição da câmera para ver todos os gráficos
+        camera.position.set(-5, 10, 15); // Ajuste a posição para ver todos
+        camera.lookAt(0, 2, 0); // Aponta a câmera para o centro dos gráficos
+
+        const animate = () => {
+            if (!mountRef3D.current || !mountRef3D.current.contains(renderer.domElement)) {
+                return;
+            }
+            requestAnimationFrame(animate);
+            scene.rotation.y += 0.005;
+            controls.update(); // Atualiza os controles
+            renderer.render(scene, camera);
+        };
+
+        animate();
+
+        const handleResize = () => {
+            if (mountRef3D.current) {
+                const newWidth = mountRef3D.current.clientWidth;
+                const newHeight = mountRef3D.current.clientHeight;
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (mountRef3D.current && renderer.domElement.parentNode === mountRef3D.current) {
+                mountRef3D.current.removeChild(renderer.domElement);
+            }
+            renderer.dispose();
+            controls.dispose(); // Limpa os controles
+        };
     };
 
     useEffect(() => {
@@ -126,37 +249,17 @@ const Ocorrencias = () => {
                 };
             });
             setOcorrencias(ocorrenciasAtualizadas);
+            setLoading(false);
         });
 
         return () => unsubscribe();
     }, []);
 
     useEffect(() => {
-        const ocorrenciasSalvas = localStorage.getItem('ocorrencias');
-        if (ocorrenciasSalvas && Array.isArray(usuarios) && usuarios.length > 0) {
-            const ocorrencias = JSON.parse(ocorrenciasSalvas);
-            const ocorrenciasComUsuarios = ocorrencias.map((ocorrencia) => {
-                return {
-                    ...ocorrencia,
-                    nomeUsuario: ocorrencia.nomeUsuario || "Usuário desconhecido",
-                    data: new Date().toISOString(),
-                };
-            });
-            setOcorrencias(ocorrenciasComUsuarios);
-        }
-    }, [usuarios]);
-
-    useEffect(() => {
-        if (ocorrencias.length > 0) {
-            localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
-        }
-    }, [ocorrencias]);
-
-    useEffect(() => {
         const loadImages = async () => {
             const loadedImages = {};
             for (const o of ocorrencias) {
-                const imgs = await getImages(o.id); // Certifique-se que esta função existe
+                const imgs = await getImages(o.id);
                 loadedImages[o.id] = imgs;
             }
             setImagensPorOcorrencia(loadedImages);
@@ -167,6 +270,47 @@ const Ocorrencias = () => {
         }
     }, [ocorrencias]);
 
+    useEffect(() => {
+        const aggregateData = () => {
+            const countsByCategory = {};
+            const countsByStatus = {};
+            const countsByGravidade = {};
+
+            ocorrencias.forEach(oc => {
+                countsByCategory[oc.categoria] = (countsByCategory[oc.categoria] || 0) + 1;
+                countsByStatus[oc.status] = (countsByStatus[oc.status] || 0) + 1;
+                countsByGravidade[oc.gravidade] = (countsByGravidade[oc.gravidade] || 0) + 1;
+            });
+
+            setDadosGraficoPorCategoria(countsByCategory);
+            setDadosGraficoPorStatus(countsByStatus);
+            setDadosGraficoPorGravidade(countsByGravidade);
+        };
+
+        if (ocorrencias.length > 0) {
+            aggregateData();
+        }
+    }, [ocorrencias]);
+
+    useEffect(() => {
+        if (mostrarGraficos3D && !loading && ocorrencias.length > 0) {
+            console.log("Iniciando renderização da cena 3D...");
+            // Chama a função de renderização da cena 3D, passando os dados
+            const cleanup = renderizarCena3D(
+                dadosGraficoPorCategoria,
+                dadosGraficoPorStatus,
+                dadosGraficoPorGravidade
+            );
+            return cleanup;
+        }
+        return () => {
+            if (mountRef3D.current) {
+                while (mountRef3D.current.firstChild) {
+                    mountRef3D.current.removeChild(mountRef3D.current.firstChild);
+                }
+            }
+        };
+    }, [mostrarGraficos3D, loading, ocorrencias, dadosGraficoPorCategoria, dadosGraficoPorStatus, dadosGraficoPorGravidade]);
 
 
     const handleSalvarEdicao = async (id) => {
@@ -175,7 +319,6 @@ const Ocorrencias = () => {
                 descricao: descricaoEditada,
                 status: statusEditado,
                 tarefaEditada: tarefaEditada,
-                images: images,
                 dataTarefaExecutada: new Date().toISOString(),
                 categoria: categoriaEditada,
                 gravidade: gravidadeEditada
@@ -185,7 +328,6 @@ const Ocorrencias = () => {
                 ocorrencia.id === id ? {
                     ...ocorrencia,
                     descricao: descricaoEditada,
-                    images: images,
                     status: statusEditado,
                     dataResolucao: new Date().toISOString(),
                     tarefaEditada: tarefaEditada,
@@ -205,30 +347,6 @@ const Ocorrencias = () => {
         }
         setSnackbarOpen(true);
     };
-
-
-    useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
-            const ocorrenciasAtualizadas = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                descricao: doc.data().descricao,
-                tarefaEditada: doc.data().tarefaEditada,
-                dataTarefaExecutada: doc.data().dataTarefaExecutada,
-                status: doc.data().status,
-                observacoes: doc.data().observacoes,
-                data: doc.data().data,
-                usuarioId: doc.data().usuarioId,
-                nomeUsuario: doc.data().nomeUsuario,
-                endereco: doc.data().endereco,
-                categoria: doc.data().categoria || 'Outros',
-                gravidade: doc.data().gravidade || ''
-            }));
-            setOcorrencias(ocorrenciasAtualizadas);
-        });
-
-        return () => unsubscribe();
-    }, []);
-
 
     const handleCheckboxChange = (id) => {
         setSelecionadas((prevSelecionadas) =>
@@ -251,28 +369,88 @@ const Ocorrencias = () => {
         navigate('/login');
     };
 
-
-
+    if (loading) {
+        return (
+            <Container maxWidth="md">
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+                    <CircularProgress />
+                    <Typography variant="body1" sx={{ ml: 2 }}>Carregando ocorrências...</Typography>
+                </Box>
+            </Container>
+        );
+    }
 
     return (
         <Container>
-            <Typography variant="h4" gutterBottom>Ocorrências Recebidas pelos Usuários</Typography>
+            <Typography variant="h4" gutterBottom>Gerenciar Ocorrências</Typography>
 
-            <Button onClick={handleSelectAll} variant="outlined" color="primary">
-                Selecionar Todas
-            </Button>
-            <Button onClick={handleSair} variant="outlined" color="secondary">
-                Sair
-            </Button>
+            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Button onClick={handleSelectAll} variant="outlined" color="primary">
+                    Selecionar Todas
+                </Button>
+                <Button onClick={handleSair} variant="outlined" color="secondary">
+                    Sair
+                </Button>
+
+
+            </Box>
 
             <Typography variant="subtitle1" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Logado como: <strong>{adminNome}</strong>
                 <Chip label="Administrador" color="primary" size="small" />
             </Typography>
 
+            {mostrarGraficos3D && (
+                <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+                    <Typography variant="h5" gutterBottom>Visualização 3D das Ocorrências</Typography>
+                    <Box sx={{
+                        height: '600px', // Aumentar a altura do container do gráfico
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column', // Para empilhar legendas e canvas
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative' // Para posicionamento absoluto das legendas
+                    }}>
+                        {ocorrencias.length === 0 ? (
+                            <Typography variant="body1">Nenhuma ocorrência para exibir no gráfico 3D.</Typography>
+                        ) : (
+                            <>
 
+
+                                {/* Legendas para Status */}
+                                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
+                                    <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 1 }}>Status</Typography>
+                                    {Object.entries(dadosGraficoPorStatus).map(([status, count]) => (
+                                        <Box key={status} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: `#${getColorForData(status, 'status').toString(16).padStart(6, '0')}` }} />
+                                            <Typography variant="body2">{status} ({count})</Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+
+                                {/* Legendas para Gravidade */}
+                                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
+                                    <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 1 }}>Gravidade</Typography>
+                                    {Object.entries(dadosGraficoPorGravidade).map(([gravidade, count]) => (
+                                        <Box key={gravidade} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: `#${getColorForData(gravidade, 'gravidade').toString(16).padStart(6, '0')}` }} />
+                                            <Typography variant="body2">{gravidade} ({count})</Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+
+                                {/* O Canvas do Three.js */}
+                                <div ref={mountRef3D} style={{ width: '100%', height: 'calc(100% - 200px)', minHeight: '300px' }} />
+                                {/* Ajuste a altura para deixar espaço para as legendas. '200px' é um valor estimado */}
+                            </>
+                        )}
+                    </Box>
+                </Paper>
+            )}
 
             <List>
+                {/* ... (o restante da sua lista de ocorrências permanece o mesmo) ... */}
                 {ocorrencias.map((ocorrencia) => (
                     <React.Fragment key={ocorrencia.id}>
                         <ListItem>
@@ -297,10 +475,17 @@ const Ocorrencias = () => {
                                         label="Tarefa Executada"
                                         margin="normal"
                                     />
+                                    {/* Data Tarefa Executada */}
                                     <TextField
                                         type="datetime-local"
-                                        value={dataTarefaEditada || new Date().toISOString().slice(0, 16)}
+                                        value={ocorrencia.dataTarefaExecutada ?
+                                            new Date(ocorrencia.dataTarefaExecutada).toISOString().slice(0, 16) :
+                                            new Date().toISOString().slice(0, 16)}
                                         onChange={(e) => setDataTarefaEditada(e.target.value)}
+                                        fullWidth
+                                        label="Data da Execução"
+                                        margin="normal"
+                                        InputLabelProps={{ shrink: true }}
                                     />
                                     <TextField
                                         value={statusEditado}
@@ -384,7 +569,7 @@ const Ocorrencias = () => {
                                                     <strong>Data da execução:</strong>
                                                     {ocorrencia.dataTarefaExecutada ?
                                                         new Date(ocorrencia.dataTarefaExecutada).toLocaleString('pt-BR') :
-                                                        new Date().toLocaleString('pt-BR')}
+                                                        'Não executada'}
                                                 </Typography>
 
                                                 <Typography variant='body2'><strong>Imagens:</strong> </Typography>
@@ -408,8 +593,10 @@ const Ocorrencias = () => {
                                         setTarefaEditada(ocorrencia.tarefaEditada || '');
                                         setStatusEditado(ocorrencia.status || 'Pendente');
                                         setEditandoOcorrencia(ocorrencia.id);
-                                        setDataTarefaEditada(ocorrencia.dataTarefaExecutada || '');
-                                        setImages(ocorrencia.images || '');
+                                        // Garante que a data esteja no formato correto (YYYY-MM-DDTHH:MM) para o input datetime-local
+                                        setDataTarefaEditada(ocorrencia.dataTarefaExecutada ?
+                                            new Date(ocorrencia.dataTarefaExecutada).toISOString().slice(0, 16) :
+                                            new Date().toISOString().slice(0, 16));
                                         setCategoriaEditada(ocorrencia.categoria || 'Outros');
                                         setGravidadeEditada(ocorrencia.gravidade || '');
                                     }}>
@@ -423,32 +610,42 @@ const Ocorrencias = () => {
                 ))}
             </List>
 
-            <Button
-                onClick={handleNavigateToMap}
-                variant="contained"
-                color="primary"
-                style={{ margin: '8px' }}
-            >
-                Ver Mapa de Ocorrências
-            </Button>
 
-            <Button
-                onClick={() => navigate('/adminAvaliacaoFeedback')} // Novo botão
-                variant="contained"
-                color="info" // Ou outra cor de sua preferência
-                style={{ margin: '8px' }}
-            >
-                Ver Avaliações e Feedbacks
-            </Button>
+            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}> {/* Adicionado 'gap: 2' */}
+                <Button
+                    onClick={() => navigate('/MapaOcorrencias')}
+                    variant="contained"
+                    color="primary"
+                >
+                    Ver Mapa de Ocorrências
+                </Button>
 
-            <Button
-                onClick={() => navigate('/adminPesquisas')} // Novo botão para pesquisas
-                variant="contained"
-                color="secondary" // Ou outra cor de sua preferência
-                style={{ margin: '8px' }}
-            >
-                Ver Respostas das Pesquisas
-            </Button>
+                <Button
+                    onClick={() => navigate('/adminAvaliacaoFeedback')}
+                    variant="contained"
+                    color="info"
+                >
+                    Ver Avaliações e Feedbacks
+                </Button>
+                <Button
+                    onClick={() => navigate('/adminPesquisas')}
+                    variant="contained"
+                    color="secondary"
+                >
+                    Ver Respostas das Pesquisas
+                </Button>
+
+                <Button
+                    onClick={() => setMostrarGraficos3D(!mostrarGraficos3D)}
+                    variant="contained"
+                    color={mostrarGraficos3D ? "error" : "success"}
+                >
+                    {mostrarGraficos3D ? "Ocultar Gráficos 3D" : "Ver Gráficos 3D"}
+                </Button>
+            </Box>
+
+
+
 
             <Snackbar
                 open={snackbarOpen}
@@ -460,8 +657,7 @@ const Ocorrencias = () => {
                 </Alert>
             </Snackbar>
         </Container>
-
     );
 };
 
-export default Ocorrencias; 
+export default Ocorrencias;
