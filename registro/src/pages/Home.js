@@ -143,6 +143,7 @@ function Home() {
         return () => {
             window.removeEventListener('resize', handleResize);
             if (mountRef.current && renderer.domElement.parentNode === mountRef.current) {
+                // eslint-disable-next-line react-hooks/exhaustive-deps
                 mountRef.current.removeChild(renderer.domElement);
             }
             renderer.dispose();

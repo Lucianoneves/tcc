@@ -126,9 +126,7 @@ function AdminAvaliacaoFeedback() {
                                                     Usuário: {feedback.nomeUsuario || 'Usuário Desconhecido'}
                                                 </Typography>
                                                 <br />
-                                                <Typography component="span" variant="body2" color="text.secondary">
-                                                    ID da Ocorrência: {feedback.ocorrenciaId} {/* Útil para rastrear */}
-                                                </Typography>
+                                                
                                                 {/* As datas originais da ocorrência (data e dataResolucao) não estão no documento de feedback.
                                                     Você precisaria buscá-las da coleção 'ocorrencias' ou salvá-las no documento de feedback.
                                                 */}

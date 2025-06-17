@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/jsx-no-undef */
 
@@ -9,7 +10,7 @@ import MuiAlert from '@mui/material/Alert';
 import { styled } from '@mui/system';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { db, storage } from "../services/firebaseConnection";
-import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { doc, addDoc, collection, updateDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 // eslint-disable-next-line no-unused-vars
@@ -83,6 +84,7 @@ const Ocorrencias = () => {
     const [dadosGraficoPorGravidade, setDadosGraficoPorGravidade] = useState({});
     const [adminNome, setAdminNome] = useState('');
     const [dataTarefaEditada, setDataTarefaEditada] = useState('');
+    const graficosRef = useRef(null);  // Já existe no seu código, apenas certifique-se de usá-lo
 
 
     // Função para obter uma cor baseada no status ou gravidade
@@ -232,27 +234,61 @@ const Ocorrencias = () => {
         }
     }, [navigate]);
 
+
+
     useEffect(() => {
-        const user = getAuth().currentUser;
-        if (!user) return;
+        let unsubscribeUsers;
+        let unsubscribeOcorrencias;
+        let mounted = true; // Flag para verificar se o componente ainda está montado
 
-        const unsubscribe = onSnapshot(collection(db, "ocorrencias"), (snapshot) => {
-            const ocorrenciasAtualizadas = snapshot.docs.map((doc) => {
-                const ocorrenciaData = doc.data();
-                return {
-                    id: doc.id,
-                    ...ocorrenciaData,
-                    nomeUsuario:
-                        ocorrenciaData.usuarioId === user.uid
-                            ? user.displayName || "Usuário sem nome"
-                            : "Usuário desconhecido",
-                };
-            });
-            setOcorrencias(ocorrenciasAtualizadas);
-            setLoading(false);
-        });
+        const loadData = async () => {
+            try {
+                setLoading(true);
 
-        return () => unsubscribe();
+                // 1. Carrega todos os usuários primeiro
+                unsubscribeUsers = onSnapshot(collection(db, "users"), (usersSnapshot) => {
+                    if (!mounted) return;
+
+                    const usersMap = {};
+                    usersSnapshot.forEach((userDoc) => {
+                        usersMap[userDoc.id] = userDoc.data().nome || userDoc.data().displayName || "Usuário não identificado";
+                    });
+
+                    // 2. Carrega as ocorrências com os nomes
+                    unsubscribeOcorrencias = onSnapshot(collection(db, "ocorrencias"), (ocorrenciasSnapshot) => {
+                        if (!mounted) return;
+
+                        const ocorrenciasAtualizadas = ocorrenciasSnapshot.docs.map((doc) => {
+                            const data = doc.data();
+                            return {
+                                id: doc.id,
+                                ...data,
+                                nomeUsuario: usersMap[data.usuarioId] || "Usuário não encontrado",
+                            };
+                        });
+
+                        setOcorrencias(ocorrenciasAtualizadas);
+                        setLoading(false);
+                    });
+                });
+            } catch (error) {
+                if (mounted) {
+                    console.error("Erro ao carregar dados:", error);
+                    setLoading(false);
+                    setSnackbarMessage('Erro ao carregar ocorrências');
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                }
+            }
+        };
+
+        loadData();
+
+        return () => {
+            mounted = false;
+            if (unsubscribeUsers) unsubscribeUsers();
+            if (unsubscribeOcorrencias) unsubscribeOcorrencias();
+        };
     }, []);
 
     useEffect(() => {
@@ -401,7 +437,7 @@ const Ocorrencias = () => {
             </Typography>
 
             {mostrarGraficos3D && (
-                <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+                <Paper ref={graficosRef} elevation={3} sx={{ p: 3, mb: 4 }}>
                     <Typography variant="h5" gutterBottom>Visualização 3D das Ocorrências</Typography>
                     <Box sx={{
                         height: '600px', // Aumentar a altura do container do gráfico
@@ -410,7 +446,10 @@ const Ocorrencias = () => {
                         flexDirection: 'column', // Para empilhar legendas e canvas
                         alignItems: 'center',
                         justifyContent: 'center',
-                        position: 'relative' // Para posicionamento absoluto das legendas
+                        position: 'relative', // Para posicionamento absoluto das legendas
+                        p: 3,
+                        mb: 4,
+                        scrollMarginTop: '20px'  // Espaço extra no topo ao fazer scroll
                     }}>
                         {ocorrencias.length === 0 ? (
                             <Typography variant="body1">Nenhuma ocorrência para exibir no gráfico 3D.</Typography>
@@ -635,8 +674,17 @@ const Ocorrencias = () => {
                     Ver Respostas das Pesquisas
                 </Button>
 
+
                 <Button
-                    onClick={() => setMostrarGraficos3D(!mostrarGraficos3D)}
+                    onClick={() => {
+                        setMostrarGraficos3D(!mostrarGraficos3D);
+                        if (!mostrarGraficos3D && graficosRef.current) {
+                            graficosRef.current.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                    }}
                     variant="contained"
                     color={mostrarGraficos3D ? "error" : "success"}
                 >
@@ -658,6 +706,6 @@ const Ocorrencias = () => {
             </Snackbar>
         </Container>
     );
-};
+}
 
 export default Ocorrencias;

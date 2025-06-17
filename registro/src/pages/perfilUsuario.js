@@ -124,7 +124,8 @@ function PerfilUsuario() {
       email: email.trim(),
       telefone: telefone.trim(),
       endereco: endereco.trim(),
-      fotoPerfil: fotoPreview.trim() || user.fotoPerfil, // Mantém a foto atual se não houver nova
+      // SOLUÇÃO: Garanta que fotoPreview seja uma string (ou string vazia) antes de chamar .trim()
+      fotoPerfil: (fotoPreview || '').trim() || user.fotoPerfil,
     };
 
     try {
@@ -137,7 +138,6 @@ function PerfilUsuario() {
       setLoading(false);
     }
   };
-
 
   // Logout
   const handleLogout = async () => {
@@ -205,7 +205,7 @@ function PerfilUsuario() {
         <TextField fullWidth label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} sx={{ mb: 2 }} />
 
         <Box mt={3}>
-          <Button variant="contained" color="primary" onClick={handleSalvarAlteracoes} disabled={loading} sx={{ mr: 2 }}>
+          <Button variant="contained" color="primary" onClick={handleSalvarAlteracoes} disabled={loading} sx={{ mr: 2 }}> 
             {loading ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
           <Button variant="outlined" color="error" onClick={handleLogout} sx={{ mr: 2 }}>
