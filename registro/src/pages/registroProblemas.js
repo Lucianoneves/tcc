@@ -562,13 +562,22 @@ function RegistroProblemas() {
                 >
                     Ver Ocorrências do Mês
                 </Button>
+                  <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => navigate('/perfilUsuario')}
+                  fullWidth
+                  sx={{ mt: 1 }}
+              >
+                  Voltar ao Perfil
+              </Button>
             </Box>
 
             <Paper sx={{ padding: 3, mb: 4 }}>
                 <Typography variant="h5" gutterBottom>
                     Registrar Ocorrências da sua Região
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
+                <Typography variant="subtitle1" gutterBottom> 
                     Bem-vindo, {user.nome}
                 </Typography>
 
@@ -579,7 +588,7 @@ function RegistroProblemas() {
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                     <Box>
                                         <Typography variant="body2">
-                                            <strong> Nome Ocorrência:</strong> {o.descricao}
+                                            <strong>Nome Ocorrência:</strong> {o.descricao}
                                         </Typography>
                                         <Typography variant="body2">
                                             <strong>Descrição da Ocorrência:</strong> {o.observacoes}
@@ -591,7 +600,7 @@ function RegistroProblemas() {
                                             <strong>Categoria da Descrição:</strong> {o.categoria}
                                         </Typography>
                                         <Typography variant="body2">
-                                            <strong>Data da Ocorrência:</strong> {o.data}
+                                            <strong>Data e Horário  da Ocorrência:</strong> {o.data}
                                         </Typography>
                                         <Typography variant="body2">
                                             <strong>Endereço:</strong> {o.endereco}

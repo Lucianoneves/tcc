@@ -42,6 +42,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/cadastrarUsuario" element={<CadastroUsuario />} />
                     <Route path="/perfil" element={<Private><Perfil /></Private>} />
+                    <Route path="/perfilUsuario" element={<Private><ProtectedRoute /><PerfilUsuario /></Private>} />
                     <Route path="/registroProblemas" element={<Private><ProtectedRoute /><RegistroProblemas /></Private>} />
                     <Route path="/ocorrenciasMes" element={<OcorrenciasMes />} />
                     <Route path="/admin" element={<AdminPage />} />

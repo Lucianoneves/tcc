@@ -335,7 +335,7 @@ const Ocorrencias = () => {
             const cleanup = renderizarCena3D(
                 dadosGraficoPorCategoria,
                 dadosGraficoPorStatus,
-                dadosGraficoPorGravidade
+                dadosGraficoPorGravidade   
             );
             return cleanup;
         }

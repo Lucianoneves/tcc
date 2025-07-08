@@ -94,7 +94,7 @@ function OcorrenciasMes() {
                     <strong>Endereço:</strong> {ocorrencia.endereco}
                   </Typography>
                   <Typography variant="body1">
-                    <strong>Data:</strong> {ocorrencia.data}
+                    <strong>Data e Horário da Ocorrência:</strong> {ocorrencia.data}
                   </Typography>
                   <Typography variant="body1">
                     <strong>Status:</strong> {ocorrencia.status || 'Pendente'}

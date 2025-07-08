@@ -329,13 +329,27 @@ function AdminPage() {
                             }} />
                         <TextField
                             label="Confirmar Senha"
-                               type={showPassword ? "text" : "password"}
+                               type={showConfirmPassword ? "text" : "password"}
                             value={novoAdmin.confirmarSenha}
                             onChange={(e) => setNovoAdmin({ ...novoAdmin, confirmarSenha: e.target.value })}
                             fullWidth
                             margin="normal"
                             required
-                           />
+                            helperText="Mínimo 6 caracteres"
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            aria-label="toggle confirm password visibility"
+                                            onClick={handleClickShowPassword}
+                                             onMouseDown={handleClickShowConfirmPassword}
+                                            edge="end"
+                                        >
+                                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }} />
                         {erro && (
                             <Alert severity="error" sx={{ mt: 2 }}>
                                 {erro}

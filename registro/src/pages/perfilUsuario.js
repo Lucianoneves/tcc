@@ -63,6 +63,46 @@ function PerfilUsuario() {
   };
 
 
+  // Função para excluir a foto de perfil
+  // eslint-disable-next-line no-unused-vars
+  const handleExcluirFoto = async () => {
+    if (!user?.uid) {
+      toast.error("Usuário não autenticado.");
+      return;
+    }
+
+    const confirmacao = window.confirm(
+      "Tem certeza que deseja remover sua foto de perfil?\n\n" +
+      "Esta ação não pode ser desfeita."
+    );
+
+    if (!confirmacao) {
+      toast.info("Remoção da foto de perfil cancelada.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+
+      await updateDoc(userDocRef, {
+        fotoPerfil: null,
+      });
+
+      localStorage.removeItem("fotoPerfil");
+      setFotoPreview(null);
+
+      toast.success("Foto de perfil removida com sucesso!");
+    } catch (error) {
+      console.error("Erro ao remover foto de perfil:", error);
+      toast.error("Erro ao remover foto de perfil. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
 
   // Formatação de telefone
@@ -118,26 +158,39 @@ function PerfilUsuario() {
     if (!user?.uid) return;
 
     setLoading(true);
-    const userDocRef = doc(db, "users", user.uid);
-    const updates = {
-      nome: nome.trim(),
-      email: email.trim(),
-      telefone: telefone.trim(),
-      endereco: endereco.trim(),
-      // SOLUÇÃO: Garanta que fotoPreview seja uma string (ou string vazia) antes de chamar .trim()
-      fotoPerfil: (fotoPreview || '').trim() || user.fotoPerfil,
-    };
+  const userDocRef = doc(db, "users", user.uid);
 
-    try {
-      await updateDoc(userDocRef, updates);
-      toast.success("Dados salvos com sucesso!");
-    } catch (error) {
-      console.error("Erro ao salvar dados:", error);
-      toast.error("Erro ao salvar dados. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
+  // Determina o valor final para fotoPerfil
+  let fotoPerfilToSave = fotoPreview; // Assume o valor atual do preview
+
+  // Se o preview estiver null e o user original tinha uma foto,
+  // significa que a foto foi removida.
+  // Se o preview tiver uma Data URL, ela será salva.
+  // Se o preview tiver um URL de storage, ele será salvo.
+
+  // A principal preocupação aqui é que se 'fotoPreview' for null,
+  // então 'fotoPerfilToSave' será null. O Firestore aceita null.
+
+  const updates = {
+    nome: nome.trim(),
+    email: email.trim(),
+    telefone: telefone.trim(),
+    endereco: endereco.trim(),
+    fotoPerfil: fotoPerfilToSave, // Este valor será null se a foto foi excluída, ou a Data URL/URL de Storage
   };
+
+  try {
+    await updateDoc(userDocRef, updates);
+    toast.success("Dados salvos com sucesso!");
+  } catch (error) {
+    console.error("Erro ao salvar dados:", error);
+    // Adicione console.log para ver o erro exato do Firebase
+    console.error("Detalhes do erro do Firebase:", error.code, error.message);
+    toast.error("Erro ao salvar dados. Tente novamente.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Logout
   const handleLogout = async () => {
@@ -148,7 +201,25 @@ function PerfilUsuario() {
   // Excluir perfil
   const excluirPerfil = async () => {
     if (!user?.uid) return;
-    setLoading(true);
+
+    // Adiciona confirmação antes de excluir
+  const confirmacao = window.confirm(
+    "Tem certeza que deseja excluir seu perfil permanentemente?\n\n" +
+    "Esta ação não pode ser desfeita e removerá:\n" +
+    "- Seus dados pessoais\n" +
+    "- Todas as suas ocorrências registradas\n" +
+    "- Sua conta de acesso\n\n" +
+    "Clique em OK para confirmar ou Cancelar para voltar."
+  );
+
+  if (!confirmacao) {
+    toast.info("Exclusão do perfil cancelada.");
+    return;
+  }
+
+  setLoading(true);
+
+
     try {
       await deleteDoc(doc(db, "users", user.uid));
       await deleteDoc(doc(db, "login", user.uid));
@@ -168,7 +239,7 @@ function PerfilUsuario() {
 
       await auth.currentUser.delete();
       await logout();
-      toast.success("Perfil e ocorrências excluídos com sucesso.");
+      toast.success("Perfil  excluídos com sucesso."); // Mensagem de sucesso após exclusão 
       navigate("/");
     } catch (error) {
       console.error("Erro ao excluir perfil:", error);
@@ -191,6 +262,18 @@ function PerfilUsuario() {
             Escolher Foto
             <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
           </Button>
+            {/* BOTÃO EXCLUIR FOTO COM VISUAL "CONTAINED" */}
+          {fotoPreview && (
+            <Button
+              variant="contained" // Alterado de "outlined" para "contained"
+              color="error"
+              onClick={handleExcluirFoto}
+              sx={{ ml: 2 }}
+              disabled={loading}
+            >
+              {loading ? 'Removendo...' : 'Excluir Foto'}
+            </Button>
+          )}
         </Box>
 
         {fotoPreview && (

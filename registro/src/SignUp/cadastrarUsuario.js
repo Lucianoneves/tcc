@@ -1,10 +1,11 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/auth';
-import { Box, Button, TextField, Typography, Avatar } from '@mui/material';
+import { Box, Button, TextField, Typography, Avatar, InputAdornment, IconButton  } from '@mui/material';
 import { toast } from 'react-toastify';
 import { storage } from "../services/firebaseConnection";
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; 
+import { Visibility, VisibilityOff } from '@mui/icons-material'; // Importe os ícones de visibilidade da senha
 
 function CadastrarUsuario() {
   const [nome, setNome] = useState('');
@@ -15,8 +16,14 @@ function CadastrarUsuario() {
   const [confirmarEmail, setConfirmarEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+   const [showPassword, setShowPassword] = useState(false); // Estado para visibilidade da senha
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // Estado para visibilidade da confirmação da senha
+
   const navigate = useNavigate();
   const { cadastrarUsuario, loadingAuth } = useContext(AuthContext); 
+
+    const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleClickShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
   const handleSubmit = async (e) => {
     e.preventDefault();    
@@ -58,6 +65,7 @@ function CadastrarUsuario() {
       await cadastrarUsuario(nome, senha, email, cpf, endereco, telefone);
   
       resetForm();
+      toast.success('Cadastro realizado com sucesso!'); // Mensagem de sucesso
       navigate('/perfil');
     } catch (error) {
       console.error('Erro ao cadastrar usuário:', error);
@@ -96,6 +104,7 @@ function CadastrarUsuario() {
       <Typography variant="h4" gutterBottom>
         Cadastro de Usuário
       </Typography>
+
       <TextField
         fullWidth
         margin="normal"
@@ -186,24 +195,51 @@ function CadastrarUsuario() {
         fullWidth
         margin="normal"
         label="Senha"
-        type="password"
+        type={showPassword ? 'text' : 'password'} // Usa o estado para controlar a visibilidade da senha
         value={senha}
         onChange={(e) => setSenha(e.target.value)}
         inputProps={{ minLength: 6, maxLength: 20, autoComplete: 'new-password' }}
         helperText="A senha deve ter entre 6 e 20 caracteres."
         required
+         InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={handleClickShowPassword}
+                edge="end"
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
       <TextField
         fullWidth
         margin="normal"
         label="Confirmar Senha"
-        type="password"
+         type={showConfirmPassword ? 'text' : 'password'}
         value={confirmarSenha}
         onChange={(e) => setConfirmarSenha(e.target.value)}
         inputProps={{ minLength: 6, maxLength: 20, autoComplete: 'new-password-confirm' }}
         helperText="A senha deve ter entre 6 e 20 caracteres."
         required
+          InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle confirm password visibility"
+                onClick={handleClickShowConfirmPassword}
+                edge="end"
+              >
+                {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
+
       <Button
         type="submit"
         variant="contained"

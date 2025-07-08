@@ -336,7 +336,7 @@ const MapaOcorrencias = () => {
                     <>
                       <span>{endereco.count} ocorrência(s)</span>
                       <br />
-                      <span>Última ocorrência: {formatarData(endereco.ultimaOcorrencia)}</span>
+                      
                     </>
                   }
                 />
