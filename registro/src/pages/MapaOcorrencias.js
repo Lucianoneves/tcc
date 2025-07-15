@@ -214,11 +214,11 @@ const MapaOcorrencias = () => {
         </Button>
       </Box>
 
-      {erroLocalizacao && <Typography color="error" sx={{ mb: 2 }}>{erroLocalizacao}</Typography>}
+      {erroLocalizacao && <Typography color="error" sx={{ mb: 2 }}>{erroLocalizacao}</Typography>}  
 
       <Typography variant="body1" gutterBottom>
-        Locais com maior número de ocorrências registradas. O tamanho e cor dos marcadores
-        indicam a quantidade de ocorrências em cada local.
+        Locais com maior número de ocorrências registradas.
+        
       </Typography>
 
       <LoadScript

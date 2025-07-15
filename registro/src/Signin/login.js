@@ -30,26 +30,37 @@ function Login() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!email || email.length < 5 || email.length > 50) {
-      toast.error("O e-mail deve ter entre 5 e 25 caracteres.");
-      return;
-    }
-    if (!senha || senha.length < 6 || senha.length > 12) {
-      toast.error("A senha deve ter entre 6 e 20 caracteres.");
-      return;
-    }
+  if (!email || email.length < 5 || email.length > 50) {
+    toast.error("O e-mail deve ter entre 5 e 50 caracteres.");
+    return;
+  }
+  if (!senha || senha.length < 6 || senha.length > 12) {
+    toast.error("A senha deve ter entre 6 e 12 caracteres.");
+    return;
+  }
 
-    try {
-      await login(email, senha); // Chama a função de login do contexto
+  try {
+    await login(email, senha); // Chama a função de login do contexto
+    navigate("/perfil"); // Redireciona para o perfil após login bem-sucedido
+  } catch (error) {
+    console.error("Erro ao fazer login: ", error);
     
-      navigate("/perfil"); // Redireciona para o dashboard após login bem-sucedido
-    } catch (error) {
-      console.error("Erro ao fazer login: ", error);
+    // Verifica o tipo de erro
+    if (error.code === 'auth/user-not-found') {
+      toast.error("Usuário não cadastrado. Por favor, crie uma conta.");
+    } else if (error.code === 'auth/wrong-password') {
+      toast.error("Senha incorreta. Tente novamente.");
+    } else if (error.code === 'auth/too-many-requests') {
+      toast.error("Muitas tentativas falhas. Acesso temporariamente bloqueado. Tente novamente mais tarde.");
+    } else if (error.code === 'auth/invalid-email') {
+      toast.error("E-mail inválido. Verifique o formato do e-mail.");
+    } else {
       toast.error("Erro ao fazer login. Verifique suas credenciais.");
     }
-  };
+  }
+};
 
   const handleEsqueciSenha = () => {   // Função para redirecionar para a página de redefinição de senha //
     navigate("/redefinir-senha");

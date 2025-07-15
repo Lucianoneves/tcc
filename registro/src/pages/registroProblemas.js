@@ -55,13 +55,14 @@ function RegistroProblemas() {
   const [ocorrencia, setOcorrencia] = useState({});
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
+  const [imagensExecucaoPorOcorrencia, setImagensExecucaoPorOcorrencia] = useState({});
 
 
   const apiKey = process.env.REACT_APP_Maps_API_KEY;
 
-   // Crie as referências para as seções de destino
-    const novaOcorrenciaRef = useRef(null);
-    const descricaoOcorrenciasRef = useRef(null);
+  // Crie as referências para as seções de destino
+  const novaOcorrenciaRef = useRef(null);
+  const descricaoOcorrenciasRef = useRef(null);
 
 
   async function handleLogout() {
@@ -296,20 +297,26 @@ function RegistroProblemas() {
 
 
   // Função para carregar imagens quando o componente montar ou ocorrências mudarem
-  useEffect(() => {
-    const loadImagesForOcorrencias = async () => {
-      const loadedImages = {};
-      for (const o of ocorrencias) {
-        const imgs = await getImages(o.id);
-        loadedImages[o.id] = imgs;
-      }
-      setImagensPorOcorrencia(loadedImages);
-    };
+useEffect(() => {
+  const loadImagesForOcorrencias = async () => {
+    const loadedImages = {};
+    const loadedExecucaoImages = {}; // Adicione esta linha
+    for (const o of ocorrencias) {
+      const imgs = await getImages(o.id);
+      loadedImages[o.id] = imgs;
 
-    if (ocorrencias.length > 0) {
-      loadImagesForOcorrencias();
+      // Carrega imagens de execução com o prefixo correto
+      const execImgs = await getImages(`execucao_${o.id}`);
+      loadedExecucaoImages[o.id] = execImgs;
     }
-  }, [ocorrencias]);
+    setImagensPorOcorrencia(loadedImages);
+    setImagensExecucaoPorOcorrencia(loadedExecucaoImages); // Atualiza o estado
+  };
+
+  if (ocorrencias.length > 0) {
+    loadImagesForOcorrencias();
+  }
+}, [ocorrencias]);
 
   const handleAddImage = async (ocorrenciaId, event) => {
     if (!event.target.files || event.target.files.length === 0) return;
@@ -370,10 +377,10 @@ function RegistroProblemas() {
       setObservacoes(ocorrenciaSelecionada.observacoes);
       setEndereco(ocorrenciaSelecionada.endereco);
 
-        // Nova lógica: rolar para a seção de nova ocorrência e descrição
-            if (novaOcorrenciaRef.current) {
-                novaOcorrenciaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+      // Nova lógica: rolar para a seção de nova ocorrência e descrição
+      if (novaOcorrenciaRef.current) {
+        novaOcorrenciaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
@@ -548,225 +555,238 @@ function RegistroProblemas() {
 
 
 
-    return (
-        <Container maxWidth="sm">
-            <Box sx={{ mb: 3 }}>
-                <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
-                    Sair
-                </Button>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/ocorrenciasMes')}
-                    fullWidth
-                >
-                    Ver Ocorrências do Mês
-                </Button>
-                  <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate('/perfilUsuario')}
-                  fullWidth
-                  sx={{ mt: 1 }}
-              >
-                  Voltar ao Perfil
-              </Button>
-            </Box>
+  return (
+  <Container maxWidth="sm">
+    <Box sx={{ mb: 3 }}>
+      <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
+        Sair
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/ocorrenciasMes')}
+        fullWidth
+      >
+        Ver Ocorrências do Mês
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/perfilUsuario')}
+        fullWidth
+        sx={{ mt: 1 }}
+      >
+        Voltar ao Perfil
+      </Button>
+    </Box>
 
-            <Paper sx={{ padding: 3, mb: 4 }}>
-                <Typography variant="h5" gutterBottom>
-                    Registrar Ocorrências da sua Região
-                </Typography>
-                <Typography variant="subtitle1" gutterBottom> 
-                    Bem-vindo, {user.nome}
-                </Typography>
+    <Paper sx={{ padding: 3, mb: 4 }}>
+      <Typography variant="h5" gutterBottom>
+        Registrar Ocorrências da sua Região
+      </Typography>
+      <Typography variant="subtitle1" gutterBottom>
+        Bem-vindo, {user.nome}
+      </Typography>
 
-                <List>
-                    {ocorrencias.map((o, index) => (
-                        <React.Fragment key={o.id}>
-                            <ListItem>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                    <Box>
-                                        <Typography variant="body2">
-                                            <strong>Nome Ocorrência:</strong> {o.descricao}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Descrição da Ocorrência:</strong> {o.observacoes}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Gravidade:</strong> <GravidadeSpan gravidade={o.gravidade}>{o.gravidade}</GravidadeSpan>
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Categoria da Descrição:</strong> {o.categoria}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Data e Horário  da Ocorrência:</strong> {o.data}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Endereço:</strong> {o.endereco}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            <strong>Tarefa executada:</strong> {o.tarefaEditada || 'Não selecionada'}
-                                        </Typography>
+      <List>
+        {ocorrencias.map((o, index) => (
+          <React.Fragment key={o.id}>
+            <ListItem>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="body2">
+                    <strong>Nome Ocorrência:</strong> {o.descricao}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Descrição da Ocorrência:</strong> {o.observacoes}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Gravidade:</strong> <GravidadeSpan gravidade={o.gravidade}>{o.gravidade}</GravidadeSpan>
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Categoria da Descrição:</strong> {o.categoria}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Data e Horário da Ocorrência:</strong> {o.data}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Endereço:</strong> {o.endereco}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Tarefa executada:</strong> {o.tarefaEditada || 'Não selecionada'}
+                  </Typography>
 
-                                        <Typography variant="body2">
-                                            <strong>Data da execução:</strong>
-                                            {o.dataTarefaExecutada ?
-                                                new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
-                                                'Data não disponível'}
-                                        </Typography>
+                  <Typography variant="body2">
+                    <strong>Data da execução:</strong>
+                    {o.dataTarefaExecutada ?
+                      new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
+                      'Data não disponível'}
+                  </Typography>
 
-                                        <Typography
-                                            variant="body2"
-                                            sx={{
-                                                color: (() => {
-                                                    const status = (o?.status || 'Pendente').trim().toLowerCase();
-                                                    if (status === 'pendente') return 'red';
-                                                    if (status === 'concluído') return 'green';
-                                                    if (status === 'em análise') return 'orange';
-                                                    return 'black';
-                                                })(),
-                                            }}
-                                        >
-                                            Status: {o?.status || 'Pendente'}
-                                        </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: (() => {
+                        const status = (o?.status || 'Pendente').trim().toLowerCase();
+                        if (status === 'pendente') return 'red';
+                        if (status === 'concluído') return 'green';
+                        if (status === 'em análise') return 'orange';
+                        return 'black';
+                      })(),
+                    }}
+                  >
+                    Status: {o?.status || 'Pendente'}
+                  </Typography>
 
-                                        <Typography variant="body2">
-                                            <strong>Imagens:</strong>
-                                        </Typography>
-                                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                            {imagensPorOcorrencia[o.id]?.map((img) => (
-                                                <Box key={img.id} position="relative" sx={{ m: 1 }}>
-                                                    <img
-                                                        src={img.url}
-                                                        alt={`Imagem da ocorrência ${o.id}`}
-                                                        style={{
-                                                            width: 100,
-                                                            height: 100,
-                                                            objectFit: 'cover',
-                                                            borderRadius: 4
-                                                        }}
-                                                    />
-                                                    <IconButton
-                                                        size="small"
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: 0,
-                                                            right: 0,
-                                                            backgroundColor: 'rgba(255,255,255,0.7)'
-                                                        }}
-                                                        onClick={() => handleRemoveImage(o.id, img.id)}
-                                                    >
-                                                        <DeleteIcon fontSize="small" color="error" />
-                                                    </IconButton>
-                                                </Box>
-                                            ))}
-                                        </Box>
-                                    </Box>
-
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => handleAddImage(o.id, e)}
-                                            style={{ display: "none" }}
-                                            id={`image-upload-${o.id}`}
-                                        />
-                                        <label htmlFor={`image-upload-${o.id}`}>
-                                            <Button
-                                                variant="outlined"
-                                                component="span"
-                                                startIcon={<AddPhotoAlternateIcon />}
-                                            >
-                                                Adicionar Imagem
-                                            </Button>
-                                        </label>
-                                        <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
-                                            Editar
-                                        </Button>
-                                        <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
-                                            Salvar
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            color="error"
-                                            onClick={() => handleRemoverOcorrencia(o.id)}
-                                            startIcon={<RemoveCircleOutlineIcon />}
-                                        >
-                                            Remover
-                                        </Button>
-                                    </Box>
-                                </Box>
-                            </ListItem>
-                            {index < ocorrencias.length - 1 && <Divider sx={{ my: 2, borderColor: 'grey.700' }} />}
-                        </React.Fragment>
+                  <Typography variant="body2"><strong>Imagens:</strong></Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {imagensPorOcorrencia[o.id]?.map((img) => (
+                      <Box key={img.id} position="relative" sx={{ m: 1 }}>
+                        <img
+                          src={img.url}
+                          alt={`Imagem da ocorrência ${o.id}`}
+                          style={{
+                            width: 100,
+                            height: 100,
+                            objectFit: 'cover',
+                            borderRadius: 4
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            backgroundColor: 'rgba(255,255,255,0.7)'
+                          }}
+                          onClick={() => handleRemoveImage(o.id, img.id)}
+                        >
+                          <DeleteIcon fontSize="small" color="error" />
+                        </IconButton>
+                      </Box>
                     ))}
-                </List>
-            </Paper>
+                  </Box>
 
-            <Box mt={4} ref={novaOcorrenciaRef}> {/* Adicione a ref aqui */}
-                <Typography variant="h6">Nova Ocorrência</Typography>
-                <TextField
-                    value={novaOcorrencia.descricao}
-                    onChange={(e) => setNovaOcorrencia({ ...novaOcorrencia, descricao: e.target.value })}
-                    fullWidth
-                    variant="outlined"
-                    label="Descrição da nova ocorrência"
-                    margin="normal"
-                />
-               
-                {/* O Box de botões para 'Adicionar Ocorrência' estava fora do Box pai da seção 'Nova Ocorrência'.
-                    Movi-o para dentro para que o scrollIntoView funcione corretamente e a estrutura seja lógica. */}
-                <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
-                        Adicionar Ocorrência
-                    </Button>
+                  <Typography variant='body2'><strong>Imagens em Execução:</strong></Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                    {imagensExecucaoPorOcorrencia[o.id]?.map((img, index) => (
+                      <Box key={index} position="relative" sx={{ width: 100, height: 100 }}>
+                        <img
+                          src={img.url}
+                          alt={`Imagem execução ${index + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
-            </Box> {/* Fechamento do Box de 'Nova Ocorrência' */}
 
-
-            <Box mt={4} ref={descricaoOcorrenciasRef}> {/* Adicione a ref aqui */}
-                <Typography variant="h6">Descrição das Ocorrências</Typography>
-                <TextField
-                    value={observacoes}
-                    onChange={(e) => setObservacoes(e.target.value)}
-                    fullWidth
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleAddImage(o.id, e)}
+                    style={{ display: "none" }}
+                    id={`image-upload-${o.id}`}
+                  />
+                  <label htmlFor={`image-upload-${o.id}`}>
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<AddPhotoAlternateIcon />}
+                    >
+                      Adicionar Imagem
+                    </Button>
+                  </label>
+                  <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
+                    Editar
+                  </Button>
+                  <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
+                    Salvar
+                  </Button>
+                  <Button
                     variant="outlined"
-                    label="Digite observações adicionais"
-                    margin="normal"
-                    multiline
-                    rows={4}
-                />
-            </Box>
+                    color="error"
+                    onClick={() => handleRemoverOcorrencia(o.id)}
+                    startIcon={<RemoveCircleOutlineIcon />}
+                  >
+                    Remover
+                  </Button>
+                </Box>
+              </Box>
+            </ListItem>
+            {index < ocorrencias.length - 1 && <Divider sx={{ my: 2, borderColor: 'grey.700' }} />}
+          </React.Fragment>
+        ))}
+      </List>
+    </Paper>
 
-            <div>
-                <h1>Localização</h1>
-                <button onClick={obterLocalizacao}>Obter Localização</button>
-                {erroLocalizacao && <p style={{ color: 'red' }}>{erroLocalizacao}</p>}
+    <Box mt={4} ref={novaOcorrenciaRef}>
+      <Typography variant="h6">Nova Ocorrência</Typography>
+      <TextField
+        value={novaOcorrencia.descricao}
+        onChange={(e) => setNovaOcorrencia({ ...novaOcorrencia, descricao: e.target.value })}
+        fullWidth
+        variant="outlined"
+        label="Descrição da nova ocorrência"
+        margin="normal"
+      />
 
-                <Typography variant="body2">
-                    <strong>Endereço:</strong> {endereco}
-                </Typography>
+      <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
+          Adicionar Ocorrência
+        </Button>
+      </Box>
+    </Box>
 
-                <div>
-                    <h2>Endereço Editável</h2>
-                    <input
-                        type="text"
-                        value={enderecoEditavel}
-                        onChange={handleEnderecoEdit}
-                        onBlur={salvarEnderecoEditado} // Salva quando o campo perder o foco
-                        placeholder="Digite o endereço manualmente"
-                    />
-                </div>
-            </div>
-            <Snackbar
-                open={snackbarOpen}
-                autoHideDuration={6000}
-                onClose={() => setSnackbarOpen(false)}
-                message={snackbarMessage}
-            />
-        </Container>
-    );
+    <Box mt={4} ref={descricaoOcorrenciasRef}>
+      <Typography variant="h6">Descrição das Ocorrências</Typography>
+      <TextField
+        value={observacoes}
+        onChange={(e) => setObservacoes(e.target.value)}
+        fullWidth
+        variant="outlined"
+        label="Digite observações adicionais"
+        margin="normal"
+        multiline
+        rows={4}
+      />
+    </Box>
+
+    <Box mt={4}>
+      <Typography variant="h6">Localização</Typography>
+      <Button variant="contained" onClick={obterLocalizacao} sx={{ mb: 2 }}>
+        Obter Localização
+      </Button>
+      {erroLocalizacao && <Typography color="error">{erroLocalizacao}</Typography>}
+
+      <Typography variant="body2" sx={{ mb: 2 }}>
+        <strong>Endereço:</strong> {endereco}
+      </Typography>
+
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="subtitle1">Endereço Editável</Typography>
+        <TextField
+          type="text"
+          value={enderecoEditavel}
+          onChange={handleEnderecoEdit}
+          onBlur={salvarEnderecoEditado}
+          placeholder="Digite o endereço manualmente"
+          fullWidth
+        />
+      </Box>
+    </Box>
+
+    <Snackbar
+      open={snackbarOpen}
+      autoHideDuration={6000}
+      onClose={() => setSnackbarOpen(false)}
+      message={snackbarMessage}
+    />
+  </Container>
+);
+
 }
 
 export default RegistroProblemas;

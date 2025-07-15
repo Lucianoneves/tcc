@@ -11,7 +11,7 @@ const openDB = () => {   // Criação do banco de dados e da storte de imagens
       const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('ocorrenciaId', 'ocorrenciaId', { unique: false });
+        store.createIndex('ocorrenciaId', 'ocorrenciaId', { unique: false }); 
       }
     };
 
@@ -73,6 +73,9 @@ export const saveImage = async (file, ocorrenciaId) => {
   });
 };
 
+
+
+
 export const getImages = async (ocorrenciaId) => {
   const db = await openDB();
   
@@ -80,14 +83,16 @@ export const getImages = async (ocorrenciaId) => {
     const transaction = db.transaction(STORE_NAME, "readonly");
     const store = transaction.objectStore(STORE_NAME);
     const index = store.index('ocorrenciaId');
-    const request = index.getAll(ocorrenciaId);
+    
+    // Busca todas as imagens cujo `ocorrenciaId` começa com o valor fornecido
+    const range = IDBKeyRange.bound(ocorrenciaId, ocorrenciaId + '\uffff');
+    const request = index.getAll(range);
 
     request.onsuccess = () => {
       const images = request.result || [];
-      // Garantimos que cada imagem tenha uma URL acessível
       resolve(images.map(img => ({
         ...img,
-        imageData: img.url // Padronizando o nome da propriedade
+        url: img.imageData || img.url // Garante compatibilidade
       })));
     };
     request.onerror = () => resolve([]);

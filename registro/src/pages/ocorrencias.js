@@ -20,6 +20,8 @@ import { saveImage, getImages, deleteImage } from "./imageDB";
 import * as THREE from 'three';
 // Importe OrbitControls para permitir arrastar e girar a cena
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+
 
 
 const Alert = React.forwardRef(function Alert(props, ref) {
@@ -85,6 +87,7 @@ const Ocorrencias = () => {
     const [adminNome, setAdminNome] = useState('');
     const [dataTarefaEditada, setDataTarefaEditada] = useState('');
     const graficosRef = useRef(null);  // Já existe no seu código, apenas certifique-se de usá-lo
+    const [imagensExecucaoPorOcorrencia, setImagensExecucaoPorOcorrencia] = useState({});
 
 
     // Função para obter uma cor baseada no status ou gravidade
@@ -236,6 +239,76 @@ const Ocorrencias = () => {
 
 
 
+    const handleAddImagemExecucao = async (ocorrenciaId, event) => {
+        if (!event.target.files || event.target.files.length === 0) return;
+
+        const file = event.target.files[0];
+        if (!file.type.match('image.*')) {
+            toast.error('Por favor, selecione um arquivo de imagem válido');
+            return;
+        }
+
+        try {
+            // Usamos um prefixo "execucao_" para diferenciar das imagens normais
+            const savedImage = await saveImage(file, `execucao_${ocorrenciaId}`);
+
+            setImagensExecucaoPorOcorrencia(prev => ({
+                ...prev,
+                [ocorrenciaId]: [...(prev[ocorrenciaId] || []), savedImage]
+            }));
+
+            toast.success('Imagem de execução adicionada com sucesso!');
+        } catch (error) {
+            console.error("Erro ao salvar imagem de execução:", error);
+            toast.error('Erro ao salvar a imagem de execução');
+        }
+    };
+
+
+    const handleRemoveImagemExecucao = async (ocorrenciaId, imageId) => {
+        try {
+            const confirmacao = window.confirm('Tem certeza que deseja remover esta imagem de execução?');
+            if (!confirmacao) return;
+
+            await deleteImage(imageId);
+
+            setImagensExecucaoPorOcorrencia(prev => ({
+                ...prev,
+                [ocorrenciaId]: prev[ocorrenciaId].filter(img => img.id !== imageId)
+            }));
+
+            toast.success('Imagem de execução removida com sucesso!');
+        } catch (error) {
+            console.error("Erro ao remover imagem de execução:", error);
+            toast.error('Erro ao remover a imagem de execução');
+        }
+    };
+
+    useEffect(() => {
+        const loadImages = async () => {
+            const loadedImages = {};
+            const loadedExecucaoImages = {};
+
+            for (const o of ocorrencias) {
+                // Imagens normais
+                const imgs = await getImages(o.id);
+                loadedImages[o.id] = imgs;
+
+                // Imagens de execução (com prefixo)
+                const execImgs = await getImages(`execucao_${o.id}`);
+                loadedExecucaoImages[o.id] = execImgs;
+            }
+
+            setImagensPorOcorrencia(loadedImages);
+            setImagensExecucaoPorOcorrencia(loadedExecucaoImages);
+        };
+
+        if (ocorrencias.length > 0) {
+            loadImages();
+        }
+    }, [ocorrencias]);
+
+
     useEffect(() => {
         let unsubscribeUsers;
         let unsubscribeOcorrencias;
@@ -263,7 +336,7 @@ const Ocorrencias = () => {
                             return {
                                 id: doc.id,
                                 ...data,
-                                nomeUsuario: usersMap[data.usuarioId] || "Usuário não encontrado",
+                                nomeUsuario: usersMap[data.usuarioId] || "Usuário Inativo",
                             };
                         });
 
@@ -335,7 +408,7 @@ const Ocorrencias = () => {
             const cleanup = renderizarCena3D(
                 dadosGraficoPorCategoria,
                 dadosGraficoPorStatus,
-                dadosGraficoPorGravidade   
+                dadosGraficoPorGravidade
             );
             return cleanup;
         }
@@ -421,14 +494,9 @@ const Ocorrencias = () => {
             <Typography variant="h4" gutterBottom>Gerenciar Ocorrências</Typography>
 
             <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Button onClick={handleSelectAll} variant="outlined" color="primary">
-                    Selecionar Todas
-                </Button>
                 <Button onClick={handleSair} variant="outlined" color="secondary">
                     Sair
                 </Button>
-
-
             </Box>
 
             <Typography variant="subtitle1" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -440,24 +508,21 @@ const Ocorrencias = () => {
                 <Paper ref={graficosRef} elevation={3} sx={{ p: 3, mb: 4 }}>
                     <Typography variant="h5" gutterBottom>Visualização 3D das Ocorrências</Typography>
                     <Box sx={{
-                        height: '600px', // Aumentar a altura do container do gráfico
+                        height: '600px',
                         width: '100%',
                         display: 'flex',
-                        flexDirection: 'column', // Para empilhar legendas e canvas
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        position: 'relative', // Para posicionamento absoluto das legendas
+                        position: 'relative',
                         p: 3,
                         mb: 4,
-                        scrollMarginTop: '20px'  // Espaço extra no topo ao fazer scroll
+                        scrollMarginTop: '20px'
                     }}>
                         {ocorrencias.length === 0 ? (
                             <Typography variant="body1">Nenhuma ocorrência para exibir no gráfico 3D.</Typography>
                         ) : (
                             <>
-
-
-                                {/* Legendas para Status */}
                                 <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
                                     <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 1 }}>Status</Typography>
                                     {Object.entries(dadosGraficoPorStatus).map(([status, count]) => (
@@ -468,7 +533,6 @@ const Ocorrencias = () => {
                                     ))}
                                 </Box>
 
-                                {/* Legendas para Gravidade */}
                                 <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
                                     <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 1 }}>Gravidade</Typography>
                                     {Object.entries(dadosGraficoPorGravidade).map(([gravidade, count]) => (
@@ -479,9 +543,7 @@ const Ocorrencias = () => {
                                     ))}
                                 </Box>
 
-                                {/* O Canvas do Three.js */}
                                 <div ref={mountRef3D} style={{ width: '100%', height: 'calc(100% - 200px)', minHeight: '300px' }} />
-                                {/* Ajuste a altura para deixar espaço para as legendas. '200px' é um valor estimado */}
                             </>
                         )}
                     </Box>
@@ -489,15 +551,9 @@ const Ocorrencias = () => {
             )}
 
             <List>
-                {/* ... (o restante da sua lista de ocorrências permanece o mesmo) ... */}
                 {ocorrencias.map((ocorrencia) => (
                     <React.Fragment key={ocorrencia.id}>
                         <ListItem>
-                            <Checkbox
-                                checked={selecionadas.includes(ocorrencia.id)}
-                                onChange={() => handleCheckboxChange(ocorrencia.id)}
-                            />
-
                             {editandoOcorrencia === ocorrencia.id ? (
                                 <>
                                     <TextField
@@ -514,7 +570,6 @@ const Ocorrencias = () => {
                                         label="Tarefa Executada"
                                         margin="normal"
                                     />
-                                    {/* Data Tarefa Executada */}
                                     <TextField
                                         type="datetime-local"
                                         value={ocorrencia.dataTarefaExecutada ?
@@ -611,7 +666,7 @@ const Ocorrencias = () => {
                                                         'Não executada'}
                                                 </Typography>
 
-                                                <Typography variant='body2'><strong>Imagens:</strong> </Typography>
+                                                <Typography variant='body2'><strong>Imagens dos Usuários:</strong> </Typography>
 
                                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                                                     {imagensPorOcorrencia[ocorrencia.id]?.map((img, index) => (
@@ -624,6 +679,32 @@ const Ocorrencias = () => {
                                                         </Box>
                                                     ))}
                                                 </Box>
+
+
+                                                <Typography variant='body2'><strong>Imagens em Execução:</strong> </Typography>
+                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                                    {imagensExecucaoPorOcorrencia[ocorrencia.id]?.map((img, index) => (
+                                                        <Box key={index} position="relative" sx={{ width: 100, height: 100 }}>
+                                                            <img
+                                                                src={img.url}
+                                                                alt={`Imagem execução ${index + 1}`}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                                                            />
+                                                            <IconButton
+                                                                size="small"
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: 0,
+                                                                    right: 0,
+                                                                    backgroundColor: 'rgba(255,255,255,0.7)'
+                                                                }}
+                                                                onClick={() => handleRemoveImagemExecucao(ocorrencia.id, img.id)}
+                                                            >
+                                                                <DeleteIcon fontSize="small" color="error" />
+                                                            </IconButton>
+                                                        </Box>
+                                                    ))}
+                                                </Box>
                                             </>
                                         }
                                     />
@@ -632,7 +713,6 @@ const Ocorrencias = () => {
                                         setTarefaEditada(ocorrencia.tarefaEditada || '');
                                         setStatusEditado(ocorrencia.status || 'Pendente');
                                         setEditandoOcorrencia(ocorrencia.id);
-                                        // Garante que a data esteja no formato correto (YYYY-MM-DDTHH:MM) para o input datetime-local
                                         setDataTarefaEditada(ocorrencia.dataTarefaExecutada ?
                                             new Date(ocorrencia.dataTarefaExecutada).toISOString().slice(0, 16) :
                                             new Date().toISOString().slice(0, 16));
@@ -641,6 +721,24 @@ const Ocorrencias = () => {
                                     }}>
                                         Editar
                                     </Button>
+
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleAddImagemExecucao(ocorrencia.id, e)}
+                                        style={{ display: "none" }}
+                                        id={`execucao-upload-${ocorrencia.id}`}
+                                    />
+                                    <label htmlFor={`execucao-upload-${ocorrencia.id}`}>
+                                        <Button
+                                            variant="outlined"
+                                            component="span"
+                                            startIcon={<AddPhotoAlternateIcon />}
+                                            color="warning"
+                                        >
+                                            Imagens em  Execução
+                                        </Button>
+                                    </label>
                                 </>
                             )}
                         </ListItem>
@@ -649,8 +747,7 @@ const Ocorrencias = () => {
                 ))}
             </List>
 
-
-            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}> {/* Adicionado 'gap: 2' */}
+            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                 <Button
                     onClick={() => navigate('/MapaOcorrencias')}
                     variant="contained"
@@ -674,7 +771,6 @@ const Ocorrencias = () => {
                     Ver Respostas das Pesquisas
                 </Button>
 
-
                 <Button
                     onClick={() => {
                         setMostrarGraficos3D(!mostrarGraficos3D);
@@ -690,10 +786,9 @@ const Ocorrencias = () => {
                 >
                     {mostrarGraficos3D ? "Ocultar Gráficos 3D" : "Ver Gráficos 3D"}
                 </Button>
+
+
             </Box>
-
-
-
 
             <Snackbar
                 open={snackbarOpen}

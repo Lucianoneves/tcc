@@ -31,6 +31,7 @@ import AdminPesquisas from './pages/adminPesquisas';
 
 
 
+
 function App() {
     return (
         <Router>
@@ -54,7 +55,7 @@ function App() {
                     <Route path="/adminAvaliacaoFeedback" element={<AdminAvaliacaoFeedback />} />
                     <Route path="/pesquisaSatisfacao" element={<PesquisaSatisfacao />} />
                     <Route path="/adminPesquisas" element={<AdminPesquisas />} />
-                
+                  
 
                 </Routes>
             </AuthProvider>

@@ -225,7 +225,7 @@ async function excluirPerfil() {
     const docRef = doc(db, "users", user.uid);
     await deleteDoc(docRef);
 
-    // Excluir o usuário no Firebase Authentication
+    // Excluir o usuário no Firebase Authentication 
     await user.delete();
 
     // Remover usuário do localStorage
