@@ -88,6 +88,34 @@ const Ocorrencias = () => {
     const [dataTarefaEditada, setDataTarefaEditada] = useState('');
     const graficosRef = useRef(null);  // Já existe no seu código, apenas certifique-se de usá-lo
     const [imagensExecucaoPorOcorrencia, setImagensExecucaoPorOcorrencia] = useState({});
+    const [isUserInactive, setIsUserInactive] = useState(false);
+    const inactivityTimeout = 15 * 60 * 1000; // 15 minutos em milissegundos
+
+    useEffect(() => {
+        let inactivityTimer;
+
+        const resetInactivityTimer = () => {
+            clearTimeout(inactivityTimer);
+            setIsUserInactive(false);
+            inactivityTimer = setTimeout(() => setIsUserInactive(true), inactivityTimeout);
+        };
+
+        // Eventos que resetam o temporizador (ex: clique, movimento do mouse, teclado)
+        window.addEventListener('mousemove', resetInactivityTimer);
+        window.addEventListener('keydown', resetInactivityTimer);
+        window.addEventListener('click', resetInactivityTimer);
+
+        // Inicia o temporizador
+        resetInactivityTimer();
+
+        // Limpeza ao desmontar o componente
+        return () => {
+            clearTimeout(inactivityTimer);
+            window.removeEventListener('mousemove', resetInactivityTimer);
+            window.removeEventListener('keydown', resetInactivityTimer);
+            window.removeEventListener('click', resetInactivityTimer);
+        };
+    }, []);
 
 
     // Função para obter uma cor baseada no status ou gravidade
@@ -489,24 +517,24 @@ const Ocorrencias = () => {
         );
     }
 
-    return (
-        <Container>
-            <Typography variant="h4" gutterBottom>Gerenciar Ocorrências</Typography>
-
-            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+     return (
+        <Container sx={{ py: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h4" component="h1">Gerenciar Ocorrências</Typography>
                 <Button onClick={handleSair} variant="outlined" color="secondary">
                     Sair
                 </Button>
             </Box>
 
-            <Typography variant="subtitle1" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Typography variant="subtitle1" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
                 Logado como: <strong>{adminNome}</strong>
                 <Chip label="Administrador" color="primary" size="small" />
             </Typography>
 
+            {/* Seção de Gráficos 3D */}
             {mostrarGraficos3D && (
-                <Paper ref={graficosRef} elevation={3} sx={{ p: 3, mb: 4 }}>
-                    <Typography variant="h5" gutterBottom>Visualização 3D das Ocorrências</Typography>
+                <Paper ref={graficosRef} elevation={3} sx={{ p: 3, mb: 4, borderRadius: '8px' }}>
+                    <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>Visualização 3D das Ocorrências</Typography>
                     <Box sx={{
                         height: '600px',
                         width: '100%',
@@ -517,249 +545,72 @@ const Ocorrencias = () => {
                         position: 'relative',
                         p: 3,
                         mb: 4,
-                        scrollMarginTop: '20px'
+                        scrollMarginTop: '20px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '4px'
                     }}>
                         {ocorrencias.length === 0 ? (
                             <Typography variant="body1">Nenhuma ocorrência para exibir no gráfico 3D.</Typography>
                         ) : (
                             <>
-                                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
-                                    <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 1 }}>Status</Typography>
+                                <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 3 }}>
+                                    <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 2 }}>Status das Ocorrências</Typography>
                                     {Object.entries(dadosGraficoPorStatus).map(([status, count]) => (
                                         <Box key={status} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: `#${getColorForData(status, 'status').toString(16).padStart(6, '0')}` }} />
-                                            <Typography variant="body2">{status} ({count})</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{status}:</Typography>
+                                            <Typography variant="body2">{count} ocorrência(s)</Typography>
                                         </Box>
                                     ))}
                                 </Box>
 
-                                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
-                                    <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 1 }}>Gravidade</Typography>
+                                <Divider sx={{ width: '80%', my: 2 }} />
+
+                                <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 3 }}>
+                                    <Typography variant="h6" sx={{ width: '100%', textAlign: 'center', mb: 2 }}>Gravidade das Ocorrências</Typography>
                                     {Object.entries(dadosGraficoPorGravidade).map(([gravidade, count]) => (
                                         <Box key={gravidade} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: `#${getColorForData(gravidade, 'gravidade').toString(16).padStart(6, '0')}` }} />
-                                            <Typography variant="body2">{gravidade} ({count})</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{gravidade}:</Typography>
+                                            <Typography variant="body2">{count} ocorrência(s)</Typography>
                                         </Box>
                                     ))}
                                 </Box>
 
-                                <div ref={mountRef3D} style={{ width: '100%', height: 'calc(100% - 200px)', minHeight: '300px' }} />
+                                {/* Placeholder para o gráfico 3D real */}
+                                <Box ref={mountRef3D} sx={{
+                                    width: '100%',
+                                    height: 'calc(100% - 200px)',
+                                    minHeight: '300px',
+                                    backgroundColor: '#f0f0f0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '4px',
+                                    border: '1px dashed #ccc'
+                                }}>
+                                    <Typography variant="h6" color="text.secondary">Gráfico 3D seria renderizado aqui</Typography>
+                                </Box>
                             </>
                         )}
                     </Box>
                 </Paper>
             )}
 
-            <List>
-                {ocorrencias.map((ocorrencia) => (
-                    <React.Fragment key={ocorrencia.id}>
-                        <ListItem>
-                            {editandoOcorrencia === ocorrencia.id ? (
-                                <>
-                                    <TextField
-                                        value={descricaoEditada}
-                                        onChange={(e) => setdescricaoEditada(e.target.value)}
-                                        fullWidth
-                                        label="Descrição"
-                                        margin="normal"
-                                    />
-                                    <TextField
-                                        value={tarefaEditada}
-                                        onChange={(e) => setTarefaEditada(e.target.value)}
-                                        fullWidth
-                                        label="Tarefa Executada"
-                                        margin="normal"
-                                    />
-                                    <TextField
-                                        type="datetime-local"
-                                        value={ocorrencia.dataTarefaExecutada ?
-                                            new Date(ocorrencia.dataTarefaExecutada).toISOString().slice(0, 16) :
-                                            new Date().toISOString().slice(0, 16)}
-                                        onChange={(e) => setDataTarefaEditada(e.target.value)}
-                                        fullWidth
-                                        label="Data da Execução"
-                                        margin="normal"
-                                        InputLabelProps={{ shrink: true }}
-                                    />
-                                    <TextField
-                                        value={statusEditado}
-                                        onChange={(e) => setStatusEditado(e.target.value)}
-                                        fullWidth
-                                        label="Status"
-                                        select
-                                        margin="normal"
-                                    >
-                                        <MenuItem value="Pendente">Pendente</MenuItem>
-                                        <MenuItem value="Em Andamento">Em Andamento</MenuItem>
-                                        <MenuItem value="Concluído">Concluído</MenuItem>
-                                    </TextField>
-                                    <TextField
-                                        select
-                                        label="Categoria"
-                                        value={categoriaEditada}
-                                        onChange={(e) => setCategoriaEditada(e.target.value)}
-                                        fullWidth
-                                        margin="normal"
-                                    >
-                                        {CATEGORIAS.map((cat) => (
-                                            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                                        ))}
-                                    </TextField>
-                                    <TextField
-                                        select
-                                        label="Gravidade"
-                                        value={gravidadeEditada}
-                                        onChange={(e) => setGravidadeEditada(e.target.value)}
-                                        fullWidth
-                                        margin="normal"
-                                    >
-                                        {GRAVIDADE.map((g) => (
-                                            <MenuItem key={g} value={g}>{g}</MenuItem>
-                                        ))}
-                                    </TextField>
-                                    <Button
-                                        onClick={() => handleSalvarEdicao(ocorrencia.id)}
-                                        variant="contained"
-                                        color="primary"
-                                        style={{ marginTop: '16px' }}
-                                    >
-                                        Salvar
-                                    </Button>
-                                    <Button
-                                        onClick={() => setEditandoOcorrencia(null)}
-                                        variant="outlined"
-                                        color="secondary"
-                                        style={{ marginTop: '16px', marginLeft: '8px' }}
-                                    >
-                                        Cancelar
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <ListItemText
-                                        primary={ocorrencia.descricao}
-                                        secondary={
-                                            <>
-                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
-                                                    <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
-                                                    <GravidadeSpan gravidade={ocorrencia.gravidade}>{ocorrencia.gravidade}</GravidadeSpan>
-                                                    <Chip label={ocorrencia.categoria} size="small" />
-                                                </Box>
-                                                <Typography variant="body2"><strong>Enviado por:</strong> {ocorrencia.nomeUsuario}</Typography>
-                                                <Typography variant="body2"><strong>Nome da Ocorrência:</strong> {ocorrencia.descricao}</Typography>
-                                                <Typography variant="body2">
-                                                    <strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    <strong>Endereço:</strong> {ocorrencia.endereco || 'Não selecionada'}
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    <strong>Descrição da Ocorrência do usuário:</strong> {ocorrencia.observacoes || 'Não selecionada'}
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    <strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não selecionada'}
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    <strong>Data da execução:</strong>
-                                                    {ocorrencia.dataTarefaExecutada ?
-                                                        new Date(ocorrencia.dataTarefaExecutada).toLocaleString('pt-BR') :
-                                                        'Não executada'}
-                                                </Typography>
-
-                                                <Typography variant='body2'><strong>Imagens dos Usuários:</strong> </Typography>
-
-                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                                                    {imagensPorOcorrencia[ocorrencia.id]?.map((img, index) => (
-                                                        <Box key={index} sx={{ width: 100, height: 100 }}>
-                                                            <img
-                                                                src={img.url}
-                                                                alt={`Imagem ${index + 1}`}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                                                            />
-                                                        </Box>
-                                                    ))}
-                                                </Box>
-
-
-                                                <Typography variant='body2'><strong>Imagens em Execução:</strong> </Typography>
-                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                                                    {imagensExecucaoPorOcorrencia[ocorrencia.id]?.map((img, index) => (
-                                                        <Box key={index} position="relative" sx={{ width: 100, height: 100 }}>
-                                                            <img
-                                                                src={img.url}
-                                                                alt={`Imagem execução ${index + 1}`}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                                                            />
-                                                            <IconButton
-                                                                size="small"
-                                                                style={{
-                                                                    position: 'absolute',
-                                                                    top: 0,
-                                                                    right: 0,
-                                                                    backgroundColor: 'rgba(255,255,255,0.7)'
-                                                                }}
-                                                                onClick={() => handleRemoveImagemExecucao(ocorrencia.id, img.id)}
-                                                            >
-                                                                <DeleteIcon fontSize="small" color="error" />
-                                                            </IconButton>
-                                                        </Box>
-                                                    ))}
-                                                </Box>
-                                            </>
-                                        }
-                                    />
-                                    <Button onClick={() => {
-                                        setdescricaoEditada(ocorrencia.descricao);
-                                        setTarefaEditada(ocorrencia.tarefaEditada || '');
-                                        setStatusEditado(ocorrencia.status || 'Pendente');
-                                        setEditandoOcorrencia(ocorrencia.id);
-                                        setDataTarefaEditada(ocorrencia.dataTarefaExecutada ?
-                                            new Date(ocorrencia.dataTarefaExecutada).toISOString().slice(0, 16) :
-                                            new Date().toISOString().slice(0, 16));
-                                        setCategoriaEditada(ocorrencia.categoria || 'Outros');
-                                        setGravidadeEditada(ocorrencia.gravidade || '');
-                                    }}>
-                                        Editar
-                                    </Button>
-
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleAddImagemExecucao(ocorrencia.id, e)}
-                                        style={{ display: "none" }}
-                                        id={`execucao-upload-${ocorrencia.id}`}
-                                    />
-                                    <label htmlFor={`execucao-upload-${ocorrencia.id}`}>
-                                        <Button
-                                            variant="outlined"
-                                            component="span"
-                                            startIcon={<AddPhotoAlternateIcon />}
-                                            color="warning"
-                                        >
-                                            Imagens em  Execução
-                                        </Button>
-                                    </label>
-                                </>
-                            )}
-                        </ListItem>
-                        <Divider sx={{ my: 2, borderColor: 'grey.700' }} />
-                    </React.Fragment>
-                ))}
-            </List>
-
-            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ mb: 4, display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
                 <Button
                     onClick={() => navigate('/MapaOcorrencias')}
                     variant="contained"
                     color="primary"
+                    sx={{ minWidth: '200px', py: 1.5 }}
                 >
                     Ver Mapa de Ocorrências
                 </Button>
-
                 <Button
                     onClick={() => navigate('/adminAvaliacaoFeedback')}
                     variant="contained"
                     color="info"
+                    sx={{ minWidth: '200px', py: 1.5 }}
                 >
                     Ver Avaliações e Feedbacks
                 </Button>
@@ -767,10 +618,10 @@ const Ocorrencias = () => {
                     onClick={() => navigate('/adminPesquisas')}
                     variant="contained"
                     color="secondary"
+                    sx={{ minWidth: '200px', py: 1.5 }}
                 >
                     Ver Respostas das Pesquisas
                 </Button>
-
                 <Button
                     onClick={() => {
                         setMostrarGraficos3D(!mostrarGraficos3D);
@@ -783,19 +634,237 @@ const Ocorrencias = () => {
                     }}
                     variant="contained"
                     color={mostrarGraficos3D ? "error" : "success"}
+                    sx={{ minWidth: '200px', py: 1.5 }}
                 >
                     {mostrarGraficos3D ? "Ocultar Gráficos 3D" : "Ver Gráficos 3D"}
                 </Button>
-
-
             </Box>
+
+            <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4, mb: 2 }}>Lista de Ocorrências</Typography>
+            <Paper elevation={2} sx={{ borderRadius: '8px', overflow: 'hidden' }}>
+                <List>
+                    {ocorrencias.length === 0 && (
+                        <ListItem>
+                            <ListItemText primary="Nenhuma ocorrência encontrada." sx={{ textAlign: 'center', py: 3 }} />
+                        </ListItem>
+                    )}
+                    {ocorrencias.map((ocorrencia, index) => (
+                        <React.Fragment key={ocorrencia.id}>
+                            <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', py: 2 }}>
+                                {editandoOcorrencia === ocorrencia.id ? (
+                                    <Box sx={{ width: '100%', '& .MuiTextField-root': { mb: 2 } }}>
+                                        <TextField
+                                            value={descricaoEditada}
+                                            onChange={(e) => setdescricaoEditada(e.target.value)}
+                                            fullWidth
+                                            label="Descrição da Ocorrência"
+                                            margin="normal"
+                                            variant="outlined"
+                                        />
+                                        <TextField
+                                            value={tarefaEditada}
+                                            onChange={(e) => setTarefaEditada(e.target.value)}
+                                            fullWidth
+                                            label="Tarefa Executada"
+                                            margin="normal"
+                                            variant="outlined"
+                                        />
+                                        <TextField
+                                            type="datetime-local"
+                                            value={dataTarefaEditada}
+                                            onChange={(e) => setDataTarefaEditada(e.target.value)}
+                                            fullWidth
+                                            label="Data da Execução"
+                                            margin="normal"
+                                            InputLabelProps={{ shrink: true }}
+                                            variant="outlined"
+                                        />
+                                        <TextField
+                                            value={statusEditado}
+                                            onChange={(e) => setStatusEditado(e.target.value)}
+                                            fullWidth
+                                            label="Status"
+                                            select
+                                            margin="normal"
+                                            variant="outlined"
+                                        >
+                                            <MenuItem value="Pendente">Pendente</MenuItem>
+                                            <MenuItem value="Em Andamento">Em Andamento</MenuItem>
+                                            <MenuItem value="Concluído">Concluído</MenuItem>
+                                        </TextField>
+                                        <TextField
+                                            select
+                                            label="Categoria"
+                                            value={categoriaEditada}
+                                            onChange={(e) => setCategoriaEditada(e.target.value)}
+                                            fullWidth
+                                            margin="normal"
+                                            variant="outlined"
+                                        >
+                                            {CATEGORIAS.map((cat) => (
+                                                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <TextField
+                                            select
+                                            label="Gravidade"
+                                            value={gravidadeEditada}
+                                            onChange={(e) => setGravidadeEditada(e.target.value)}
+                                            fullWidth
+                                            margin="normal"
+                                            variant="outlined"
+                                        >
+                                            {GRAVIDADE.map((g) => (
+                                                <MenuItem key={g} value={g}>{g}</MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                                            <Button
+                                                onClick={() => handleSalvarEdicao(ocorrencia.id)}
+                                                variant="contained"
+                                                color="primary"
+                                            >
+                                                Salvar
+                                            </Button>
+                                            <Button
+                                                onClick={() => setEditandoOcorrencia(null)}
+                                                variant="outlined"
+                                                color="secondary"
+                                            >
+                                                Cancelar
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                ) : (
+                                    <Box sx={{ width: '100%' }}>
+                                        <ListItemText
+                                            primary={
+                                                <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+                                                    {ocorrencia.descricao}
+                                                </Typography>
+                                            }
+                                            secondary={
+                                                <>
+                                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                                                        <StatusSpan status={ocorrencia.status}>{ocorrencia.status}</StatusSpan>
+                                                        <GravidadeSpan gravidade={ocorrencia.gravidade}>{ocorrencia.gravidade}</GravidadeSpan>
+                                                        <Chip label={ocorrencia.categoria} size="small" />
+                                                    </Box>
+                                                    <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Protocolo:</strong> {ocorrencia.protocolo || 'Não informado'}</Typography>
+                                                    <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Enviado por:</strong> {ocorrencia.nomeUsuario}</Typography>
+                                                    <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Data da Ocorrência:</strong> {ocorrencia.data || 'Não selecionada'}</Typography>
+                                                    <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Endereço:</strong> {ocorrencia.endereco || 'Não selecionada'}</Typography>
+                                                    <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Descrição do usuário:</strong> {ocorrencia.observacoes || 'Não selecionada'}</Typography>
+                                                    <Typography variant="body2" sx={{ mb: 0.5 }}><strong>Tarefa executada:</strong> {ocorrencia.tarefaEditada || 'Não executada'}</Typography>
+                                                    <Typography variant="body2" sx={{ mb: 1 }}>
+                                                        <strong>Data da execução:</strong> {' '}
+                                                        {ocorrencia.dataTarefaExecutada ?
+                                                            new Date(ocorrencia.dataTarefaExecutada).toLocaleString('pt-BR') :
+                                                            'Não executada'}
+                                                    </Typography>
+
+                                                    {/* Imagens do Usuário */}
+                                                    {imagensPorOcorrencia[ocorrencia.id] && imagensPorOcorrencia[ocorrencia.id].length > 0 && (
+                                                        <Box sx={{ mt: 2 }}>
+                                                            <Typography variant='subtitle2' gutterBottom><strong>Imagens do Usuário:</strong></Typography>
+                                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                                                {imagensPorOcorrencia[ocorrencia.id].map((img, imgIndex) => (
+                                                                    <Box key={imgIndex} sx={{ width: 100, height: 100, overflow: 'hidden', borderRadius: '4px', border: '1px solid #ddd' }}>
+                                                                        <img
+                                                                            src={img.url}
+                                                                            alt={`Imagem Usuário ${imgIndex + 1}`}
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                        />
+                                                                    </Box>
+                                                                ))}
+                                                            </Box>
+                                                        </Box>
+                                                    )}
+
+                                                    {/* Imagens em Execução */}
+                                                    <Box sx={{ mt: 2 }}>
+                                                        <Typography variant='subtitle2' gutterBottom><strong>Imagens em Execução:</strong></Typography>  
+                                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                                            {imagensExecucaoPorOcorrencia[ocorrencia.id]?.map((img, imgIndex) => (
+                                                                <Box key={imgIndex} position="relative" sx={{ width: 100, height: 100, overflow: 'hidden', borderRadius: '4px', border: '1px solid #ddd' }}>
+                                                                    <img
+                                                                        src={img.url}
+                                                                        alt={`Imagem Execução ${imgIndex + 1}`}
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                    />
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        sx={{
+                                                                            position: 'absolute',
+                                                                            top: 4,
+                                                                            right: 4,
+                                                                            backgroundColor: 'rgba(255,255,255,0.7)',
+                                                                            '&:hover': { backgroundColor: 'rgba(255,255,255,0.9)' }
+                                                                        }}
+                                                                        onClick={() => handleRemoveImagemExecucao(ocorrencia.id, img.id)}
+                                                                    >
+                                                                        <DeleteIcon fontSize="small" color="error" />
+                                                                    </IconButton>
+                                                                </Box>
+                                                            ))}
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => handleAddImagemExecucao(ocorrencia.id, e)}
+                                                                style={{ display: "none" }}
+                                                                id={`execucao-upload-${ocorrencia.id}`}
+                                                            />
+                                                            <label htmlFor={`execucao-upload-${ocorrencia.id}`}>
+                                                                <Button
+                                                                    variant="outlined"
+                                                                    component="span"
+                                                                    startIcon={<AddPhotoAlternateIcon />}
+                                                                    color="warning"
+                                                                    sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}
+                                                                >
+                                                                    Adicionar
+                                                                </Button>
+                                                            </label>
+                                                        </Box>
+                                                    </Box>
+                                                </>
+                                            }
+                                        />
+                                        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                                            <Button
+                                                onClick={() => {
+                                                    setdescricaoEditada(ocorrencia.descricao);
+                                                    setTarefaEditada(ocorrencia.tarefaEditada || '');
+                                                    setStatusEditado(ocorrencia.status || 'Pendente');
+                                                    setEditandoOcorrencia(ocorrencia.id);
+                                                    setDataTarefaEditada(ocorrencia.dataTarefaExecutada ?
+                                                        new Date(ocorrencia.dataTarefaExecutada).toISOString().slice(0, 16) :
+                                                        new Date().toISOString().slice(0, 16));
+                                                    setCategoriaEditada(ocorrencia.categoria || 'Outros');
+                                                    setGravidadeEditada(ocorrencia.gravidade || '');
+                                                }}
+                                                variant="contained"
+                                                color="info"
+                                            >
+                                                Editar Ocorrência
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                )}
+                            </ListItem>
+                            {index < ocorrencias.length - 1 && <Divider component="li" sx={{ my: 2, borderColor: 'grey.300' }} />}
+                        </React.Fragment>
+                    ))}
+                </List>
+            </Paper>
 
             <Snackbar
                 open={snackbarOpen}
                 autoHideDuration={6000}
                 onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
-                <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity}>
+                <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
                     {snackbarMessage}
                 </Alert>
             </Snackbar>

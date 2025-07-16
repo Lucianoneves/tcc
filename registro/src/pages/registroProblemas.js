@@ -58,6 +58,11 @@ function RegistroProblemas() {
   const [imagensExecucaoPorOcorrencia, setImagensExecucaoPorOcorrencia] = useState({});
 
 
+
+
+
+
+
   const apiKey = process.env.REACT_APP_Maps_API_KEY;
 
   // Crie as referências para as seções de destino
@@ -244,17 +249,25 @@ function RegistroProblemas() {
 
     // Verifica se a descrição da nova ocorrência não está vazia
     if (novaOcorrencia.descricao.trim()) {
+      // Função para gerar um código de protocolo único
+      const gerarProtocolo = () => {
+        const timestamp = Date.now().toString(36); // base 36 = letras + números
+        const aleatorio = Math.random().toString(36).substring(2, 6).toUpperCase();
+        return `PROTOCOLO-${timestamp}-${aleatorio}`;
+      };
+
+      const protocolo = gerarProtocolo();
+
       const nova = {
         usuarioId: user.uid,
         nomeUsuario: user.nome,
         descricao: novaOcorrencia.descricao,
-        gravidade: novaOcorrencia.gravidade, // Inclui a gravidade
+        gravidade: novaOcorrencia.gravidade,
         endereco: enderecoAtual,
         observacoes,
         status: 'Pendente',
         data: dataFormatada,
-
-
+        protocolo: protocolo // Adicionando protocolo
       };
 
       try {
@@ -281,6 +294,7 @@ function RegistroProblemas() {
         setSelectedFile(null);
         setSnackbarMessage('Ocorrência adicionada com sucesso!');
         setSnackbarSeverity('success');
+        toast.success(`Protocolo gerado: ${protocolo}`);
         setSnackbarOpen(true);
       } catch (error) {
         console.error("Erro ao adicionar ocorrência: ", error);
@@ -297,26 +311,26 @@ function RegistroProblemas() {
 
 
   // Função para carregar imagens quando o componente montar ou ocorrências mudarem
-useEffect(() => {
-  const loadImagesForOcorrencias = async () => {
-    const loadedImages = {};
-    const loadedExecucaoImages = {}; // Adicione esta linha
-    for (const o of ocorrencias) {
-      const imgs = await getImages(o.id);
-      loadedImages[o.id] = imgs;
+  useEffect(() => {
+    const loadImagesForOcorrencias = async () => {
+      const loadedImages = {};
+      const loadedExecucaoImages = {}; // Adicione esta linha
+      for (const o of ocorrencias) {
+        const imgs = await getImages(o.id);
+        loadedImages[o.id] = imgs;
 
-      // Carrega imagens de execução com o prefixo correto
-      const execImgs = await getImages(`execucao_${o.id}`);
-      loadedExecucaoImages[o.id] = execImgs;
+        // Carrega imagens de execução com o prefixo correto
+        const execImgs = await getImages(`execucao_${o.id}`);
+        loadedExecucaoImages[o.id] = execImgs;
+      }
+      setImagensPorOcorrencia(loadedImages);
+      setImagensExecucaoPorOcorrencia(loadedExecucaoImages); // Atualiza o estado
+    };
+
+    if (ocorrencias.length > 0) {
+      loadImagesForOcorrencias();
     }
-    setImagensPorOcorrencia(loadedImages);
-    setImagensExecucaoPorOcorrencia(loadedExecucaoImages); // Atualiza o estado
-  };
-
-  if (ocorrencias.length > 0) {
-    loadImagesForOcorrencias();
-  }
-}, [ocorrencias]);
+  }, [ocorrencias]);
 
   const handleAddImage = async (ocorrenciaId, event) => {
     if (!event.target.files || event.target.files.length === 0) return;
@@ -556,217 +570,187 @@ useEffect(() => {
 
 
   return (
-  <Container maxWidth="sm">
-    <Box sx={{ mb: 3 }}>
-      <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
-        Sair
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => navigate('/ocorrenciasMes')}
-        fullWidth
-      >
-        Ver Ocorrências do Mês
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => navigate('/perfilUsuario')}
-        fullWidth
-        sx={{ mt: 1 }}
-      >
-        Voltar ao Perfil
-      </Button>
-    </Box>
+    <Container maxWidth="md">
+      {/* AÇÕES DO TOPO */}
+      <Paper sx={{ p: 2, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>Ações Rápidas</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={4}>
+            <Button variant="outlined" color="secondary" onClick={handleLogout} fullWidth>
+              Sair
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Button variant="contained" color="primary" onClick={() => navigate('/ocorrenciasMes')} fullWidth>
+              Ocorrências do Mês
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Button variant="contained" color="primary" onClick={() => navigate('/perfilUsuario')} fullWidth>
+              Perfil do Usuário
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
 
-    <Paper sx={{ padding: 3, mb: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Registrar Ocorrências da sua Região
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        Bem-vindo, {user.nome}
-      </Typography>
+      {/* REGISTRO DE OCORRÊNCIAS */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Registrar Ocorrências da sua Região
+        </Typography>
+        <Typography variant="subtitle1" gutterBottom>
+          Bem-vindo, {user.nome}
+        </Typography>
 
-      <List>
-        {ocorrencias.map((o, index) => (
-          <React.Fragment key={o.id}>
-            <ListItem>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="body2">
-                    <strong>Nome Ocorrência:</strong> {o.descricao}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Descrição da Ocorrência:</strong> {o.observacoes}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Gravidade:</strong> <GravidadeSpan gravidade={o.gravidade}>{o.gravidade}</GravidadeSpan>
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Categoria da Descrição:</strong> {o.categoria}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Data e Horário da Ocorrência:</strong> {o.data}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Endereço:</strong> {o.endereco}
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Tarefa executada:</strong> {o.tarefaEditada || 'Não selecionada'}
-                  </Typography>
+        <List>
+          {ocorrencias.map((o, index) => (
+            <React.Fragment key={o.id}>
+              <ListItem alignItems="flex-start">
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={9}>
+                    <Typography variant="body2"><strong>Protocolo:</strong> <strong> {o.protocolo || 'Não informado'}</strong>                                                                        </Typography>
+                    <Typography variant="body2"><strong>Nome Ocorrência:</strong> {o.descricao}</Typography>
+                    <Typography variant="body2"><strong>Descrição:</strong> {o.observacoes}</Typography>
+                    <Typography variant="body2">
+                      <strong>Gravidade:</strong> <GravidadeSpan gravidade={o.gravidade}>{o.gravidade}</GravidadeSpan>
+                    </Typography>
+                    <Typography variant="body2"><strong>Categoria:</strong> {o.categoria}</Typography>
+                    <Typography variant="body2"><strong>Data:</strong> {o.data}</Typography>
+                    <Typography variant="body2"><strong>Endereço:</strong> {o.endereco}</Typography>
+                    <Typography variant="body2"><strong>Tarefa:</strong> {o.tarefaEditada || 'Não selecionada'}</Typography>
+                    <Typography variant="body2">
+                      <strong>Execução:</strong> {o.dataTarefaExecutada ? new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') : 'Data não disponível'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: getStatusColor(o.status) }}>
+                      <strong>Status:</strong> {o.status || 'Pendente'}
+                    </Typography>
 
-                  <Typography variant="body2">
-                    <strong>Data da execução:</strong>
-                    {o.dataTarefaExecutada ?
-                      new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') :
-                      'Data não disponível'}
-                  </Typography>
+                    <Typography variant="subtitle2" gutterBottom><strong>Imagens:</strong></Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {imagensPorOcorrencia[o.id]?.map((img, imgIndex) => (
+                        <Box key={`${img.id}-${imgIndex}`} position="relative" sx={{ width: 100, height: 100, overflow: 'hidden', borderRadius: '4px', border: '1px solid #ddd' }}>
+                          <img
+                            src={img.url}
+                            alt={`Imagem da ocorrência ${o.id}, ${imgIndex + 1}`}
+                            style={{ width: 100, height: 100, objectFit: 'cover' }}
+                          />
+                          <IconButton
+                            size="small"
+                            sx={{
+                              position: 'absolute', 
+                              top: 4,
+                              right: 4,
+                              backgroundColor: 'rgba(255,255,255,0.7)',
+                              '&:hover': { backgroundColor: 'rgba(255,255,255,0.9)' }
+                            }}
+                            onClick={() => handleRemoveImage(o.id, img.id)}
+                          >
+                            <DeleteIcon fontSize="small" color="error" />
+                          </IconButton>
+                        </Box>
+                      ))}
+                            <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAddImage(o.id, e)}
+                      style={{ display: "none" }}
+                      id={`image-upload-${o.id}`}
+                    />
+                    <label htmlFor={`image-upload-${o.id}`}>
+                      <Button fullWidth variant="outlined" component="span" startIcon={<AddPhotoAlternateIcon />}
+                      color="warning"
+                      >
+                        Imagem
+                      </Button>
+                    </label>
+                    </Box>
 
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: (() => {
-                        const status = (o?.status || 'Pendente').trim().toLowerCase();
-                        if (status === 'pendente') return 'red';
-                        if (status === 'concluído') return 'green';
-                        if (status === 'em análise') return 'orange';
-                        return 'black';
-                      })(),
-                    }}
-                  >
-                    Status: {o?.status || 'Pendente'}
-                  </Typography>
+                    <Typography variant="body2"><strong>Imagens em Execução:</strong></Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                      {imagensExecucaoPorOcorrencia[o.id]?.map((img, index) => (
+                        <Box key={index} sx={{ width: 100, height: 100 }}>
+                          <img
+                            src={img.url}
+                            alt={`Execução ${index + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </Grid>
 
-                  <Typography variant="body2"><strong>Imagens:</strong></Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    {imagensPorOcorrencia[o.id]?.map((img) => (
-                      <Box key={img.id} position="relative" sx={{ m: 1 }}>
-                        <img
-                          src={img.url}
-                          alt={`Imagem da ocorrência ${o.id}`}
-                          style={{
-                            width: 100,
-                            height: 100,
-                            objectFit: 'cover',
-                            borderRadius: 4
-                          }}
-                        />
-                        <IconButton
-                          size="small"
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            backgroundColor: 'rgba(255,255,255,0.7)'
-                          }}
-                          onClick={() => handleRemoveImage(o.id, img.id)}
-                        >
-                          <DeleteIcon fontSize="small" color="error" />
-                        </IconButton>
-                      </Box>
-                    ))}
-                  </Box>
-
-                  <Typography variant='body2'><strong>Imagens em Execução:</strong></Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {imagensExecucaoPorOcorrencia[o.id]?.map((img, index) => (
-                      <Box key={index} position="relative" sx={{ width: 100, height: 100 }}>
-                        <img
-                          src={img.url}
-                          alt={`Imagem execução ${index + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                        />
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleAddImage(o.id, e)}
-                    style={{ display: "none" }}
-                    id={`image-upload-${o.id}`}
-                  />
-                  <label htmlFor={`image-upload-${o.id}`}>
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      startIcon={<AddPhotoAlternateIcon />}
-                    >
-                      Adicionar Imagem
+                  <Grid item xs={12} md={3}>
+              
+                    <Button fullWidth variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)} sx={{ mt: 1 }}>
+                      Editar
                     </Button>
-                  </label>
-                  <Button variant="outlined" color="primary" onClick={() => handleEditarClick(o.id)}>
-                    Editar
-                  </Button>
-                  <Button variant="outlined" color="success" onClick={handleSalvarEdicao}>
-                    Salvar
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleRemoverOcorrencia(o.id)}
-                    startIcon={<RemoveCircleOutlineIcon />}
-                  >
-                    Remover
-                  </Button>
-                </Box>
-              </Box>
-            </ListItem>
-            {index < ocorrencias.length - 1 && <Divider sx={{ my: 2, borderColor: 'grey.700' }} />}
-          </React.Fragment>
-        ))}
-      </List>
-    </Paper>
+                    <Button fullWidth variant="outlined" color="success" onClick={handleSalvarEdicao} sx={{ mt: 1 }}>
+                      Salvar
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      onClick={() => handleRemoverOcorrencia(o.id)}
+                      startIcon={<RemoveCircleOutlineIcon />}
+                      sx={{ mt: 1 }}
+                    >
+                      Remover
+                    </Button>
+                  </Grid>
+                </Grid>
+              </ListItem>
+              {index < ocorrencias.length - 1 && <Divider sx={{ my: 2 }} />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
 
-    <Box mt={4} ref={novaOcorrenciaRef}>
-      <Typography variant="h6">Nova Ocorrência</Typography>
-      <TextField
-        value={novaOcorrencia.descricao}
-        onChange={(e) => setNovaOcorrencia({ ...novaOcorrencia, descricao: e.target.value })}
-        fullWidth
-        variant="outlined"
-        label="Descrição da nova ocorrência"
-        margin="normal"
-      />
+      {/* NOVA OCORRÊNCIA */}
+      <Paper sx={{ p: 3, mb: 4 }} ref={novaOcorrenciaRef}>
+        <Typography variant="h6">Nova Ocorrência</Typography>
+        <TextField
+          value={novaOcorrencia.descricao}
+          onChange={(e) => setNovaOcorrencia({ ...novaOcorrencia, descricao: e.target.value })}
+          fullWidth
+          variant="outlined"
+          label="Descrição da nova ocorrência"
+          margin="normal"
+        />
+        <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
+            Adicionar Ocorrência
+          </Button>
+        </Box>
+      </Paper>
 
-      <Box mt={2} sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Button variant="contained" color="secondary" onClick={handleAdicionarOcorrencia}>
-          Adicionar Ocorrência
+      {/* DESCRIÇÃO ADICIONAL */}
+      <Paper sx={{ p: 3, mb: 4 }} ref={descricaoOcorrenciasRef}>
+        <Typography variant="h6">Descrição das Ocorrências</Typography>
+        <TextField
+          value={observacoes}
+          onChange={(e) => setObservacoes(e.target.value)}
+          fullWidth
+          variant="outlined"
+          label="Digite observações adicionais"
+          margin="normal"
+          multiline
+          rows={4}
+        />
+      </Paper>
+
+      {/* LOCALIZAÇÃO */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6">Localização</Typography>
+        <Button variant="contained" onClick={obterLocalizacao} sx={{ mb: 2 }}>
+          Obter Localização
         </Button>
-      </Box>
-    </Box>
+        {erroLocalizacao && <Typography color="error">{erroLocalizacao}</Typography>}
 
-    <Box mt={4} ref={descricaoOcorrenciasRef}>
-      <Typography variant="h6">Descrição das Ocorrências</Typography>
-      <TextField
-        value={observacoes}
-        onChange={(e) => setObservacoes(e.target.value)}
-        fullWidth
-        variant="outlined"
-        label="Digite observações adicionais"
-        margin="normal"
-        multiline
-        rows={4}
-      />
-    </Box>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          <strong>Endereço:</strong> {endereco}
+        </Typography>
 
-    <Box mt={4}>
-      <Typography variant="h6">Localização</Typography>
-      <Button variant="contained" onClick={obterLocalizacao} sx={{ mb: 2 }}>
-        Obter Localização
-      </Button>
-      {erroLocalizacao && <Typography color="error">{erroLocalizacao}</Typography>}
-
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        <strong>Endereço:</strong> {endereco}
-      </Typography>
-
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="subtitle1">Endereço Editável</Typography>
         <TextField
           type="text"
           value={enderecoEditavel}
@@ -774,19 +758,32 @@ useEffect(() => {
           onBlur={salvarEnderecoEditado}
           placeholder="Digite o endereço manualmente"
           fullWidth
+          label="Endereço Editável"
         />
-      </Box>
-    </Box>
+      </Paper>
 
-    <Snackbar
-      open={snackbarOpen}
-      autoHideDuration={6000}
-      onClose={() => setSnackbarOpen(false)}
-      message={snackbarMessage}
-    />
-  </Container>
-);
-
+      {/* SNACKBAR */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
+    </Container>
+  );
 }
+
+const getStatusColor = (status) => {
+  switch ((status || 'Pendente').toLowerCase()) {
+    case 'pendente':
+      return 'red';
+    case 'concluído':
+      return 'green';
+    case 'em análise':
+      return 'orange';
+    default:
+      return 'black';
+  }
+};
 
 export default RegistroProblemas;
