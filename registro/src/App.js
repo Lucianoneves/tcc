@@ -22,6 +22,8 @@ import AvaliacaoFeedback from './pages/avaliacaoFeedback';
 import AdminAvaliacaoFeedback from './pages/adminAvaliacaoFeedback';
 import PesquisaSatisfacao from './pages/pesquisaSatisfafacao';
 import AdminPesquisas from './pages/adminPesquisas';
+import OcorrenciasConcluidas from './pages/ocorrenciasConcluidas';
+
 
 
 
@@ -55,6 +57,8 @@ function App() {
                     <Route path="/adminAvaliacaoFeedback" element={<AdminAvaliacaoFeedback />} />
                     <Route path="/pesquisaSatisfacao" element={<PesquisaSatisfacao />} />
                     <Route path="/adminPesquisas" element={<AdminPesquisas />} />
+                    <Route path="/ocorrencias-concluidas" element={<OcorrenciasConcluidas />} />
+                   
                   
 
                 </Routes>

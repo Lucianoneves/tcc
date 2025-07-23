@@ -15,7 +15,9 @@ import { toast } from 'react-toastify';
 import { saveImage, getImages, deleteImage } from "./imageDB";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'; // Import the new icon
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';  
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+
 
 
 function RegistroProblemas() {
@@ -67,7 +69,7 @@ function RegistroProblemas() {
 
   // Crie as referências para as seções de destino
   const novaOcorrenciaRef = useRef(null);
-  const descricaoOcorrenciasRef = useRef(null);
+  const descricaoOcorrenciasRef = useRef(null); // Referência para a seção de descrição das ocorrências
 
 
   async function handleLogout() {
@@ -76,7 +78,7 @@ function RegistroProblemas() {
 
 
 
-  const GravidadeSpan = styled('span')(({ gravidade }) => ({
+  const GravidadeSpan = styled('span')(({ gravidade }) => ({ // Estilização condicional baseada na gravidade
     padding: '4px 8px',
     borderRadius: '4px',
     color: '#fff',
@@ -90,7 +92,7 @@ function RegistroProblemas() {
   const GRAVIDADE = ['Baixa', 'Média', 'Alta'];
 
 
-  useEffect(() => {
+  useEffect(() => { // Carrega o script do Google Maps API quando o componente é montado
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
     script.async = true;
@@ -242,7 +244,7 @@ function RegistroProblemas() {
 
 
 
-  const handleAdicionarOcorrencia = async () => {
+  const handleAdicionarOcorrencia = async () => { //  Função para adicionar uma nova ocorrência 
     const dataAtual = new Date();
     const dataFormatada = dataAtual.toLocaleString();
     const enderecoAtual = enderecoEditavel.trim();
@@ -569,7 +571,7 @@ function RegistroProblemas() {
 
 
 
-  return (
+  return ( 
     <Container maxWidth="md">
       {/* AÇÕES DO TOPO */}
       <Paper sx={{ p: 2, mb: 4 }}>
@@ -616,7 +618,7 @@ function RegistroProblemas() {
                     </Typography>
                     <Typography variant="body2"><strong>Categoria:</strong> {o.categoria}</Typography>
                     <Typography variant="body2"><strong>Data:</strong> {o.data}</Typography>
-                    <Typography variant="body2"><strong>Endereço:</strong> {o.endereco}</Typography>
+                    <Typography variant="body2"><strong>Endereço da Ocorrência:</strong> {o.endereco}</Typography>
                     <Typography variant="body2"><strong>Tarefa:</strong> {o.tarefaEditada || 'Não selecionada'}</Typography>
                     <Typography variant="body2">
                       <strong>Execução:</strong> {o.dataTarefaExecutada ? new Date(o.dataTarefaExecutada).toLocaleString('pt-BR') : 'Data não disponível'}
@@ -741,10 +743,15 @@ function RegistroProblemas() {
 
       {/* LOCALIZAÇÃO */}
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6">Localização</Typography>
-        <Button variant="contained" onClick={obterLocalizacao} sx={{ mb: 2 }}>
-          Obter Localização
-        </Button>
+        <Typography variant="h6">Localização da Ocorrência</Typography>
+        <Button
+  variant="contained"
+  onClick={obterLocalizacao}
+  sx={{ mb: 2, minWidth: '48px', padding: '8px' }}
+>
+  <LocationOnIcon />
+</Button>
+
         {erroLocalizacao && <Typography color="error">{erroLocalizacao}</Typography>}
 
         <Typography variant="body2" sx={{ mb: 2 }}>

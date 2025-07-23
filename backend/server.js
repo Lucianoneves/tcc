@@ -1,7 +1,7 @@
 // lucianoneves/tcc/tcc-b8fc0d0b4c4e2c6f5bebcd48eed52330a6de6f6f/registro/src/services/server.js (Exemplo Adaptado)
 
 const express = require('express');
-const bodyParser = require('body-parser');
+const bodyParser = require('body-parser'); 
 const admin = require('firebase-admin'); // Certifique-se de ter o Firebase Admin SDK configurado
 
 // Assumindo que firebaseConnection.js inicializa o admin SDK

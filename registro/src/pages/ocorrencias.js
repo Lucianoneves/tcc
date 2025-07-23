@@ -359,14 +359,16 @@ const Ocorrencias = () => {
                     unsubscribeOcorrencias = onSnapshot(collection(db, "ocorrencias"), (ocorrenciasSnapshot) => {
                         if (!mounted) return;
 
-                        const ocorrenciasAtualizadas = ocorrenciasSnapshot.docs.map((doc) => {
-                            const data = doc.data();
-                            return {
-                                id: doc.id,
-                                ...data,
-                                nomeUsuario: usersMap[data.usuarioId] || "Usuário Inativo",
-                            };
-                        });
+                        const ocorrenciasAtualizadas = ocorrenciasSnapshot.docs
+                            .map((doc) => {
+                                const data = doc.data();
+                                return {
+                                    id: doc.id,
+                                    ...data,
+                                    nomeUsuario: usersMap[data.usuarioId] || "Usuário Inativo",
+                                };
+                            })
+                            .filter((oc) => oc.status !== "Concluído"); // <- aqui está o filtro
 
                         setOcorrencias(ocorrenciasAtualizadas);
                         setLoading(false);
@@ -517,7 +519,7 @@ const Ocorrencias = () => {
         );
     }
 
-     return (
+    return (
         <Container sx={{ py: 4 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h4" component="h1">Gerenciar Ocorrências</Typography>
@@ -638,6 +640,15 @@ const Ocorrencias = () => {
                 >
                     {mostrarGraficos3D ? "Ocultar Gráficos 3D" : "Ver Gráficos 3D"}
                 </Button>
+                <Button
+                    onClick={() => navigate('/ocorrencias-concluidas')}
+                    variant="contained"
+                    color="success"
+                    sx={{ minWidth: '200px', py: 1.5 }}
+                >
+                    Ver Ocorrências Concluídas
+                </Button>
+
             </Box>
 
             <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4, mb: 2 }}>Lista de Ocorrências</Typography>
@@ -783,7 +794,7 @@ const Ocorrencias = () => {
 
                                                     {/* Imagens em Execução */}
                                                     <Box sx={{ mt: 2 }}>
-                                                        <Typography variant='subtitle2' gutterBottom><strong>Imagens em Execução:</strong></Typography>  
+                                                        <Typography variant='subtitle2' gutterBottom><strong>Imagens em Execução:</strong></Typography>
                                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                                             {imagensExecucaoPorOcorrencia[ocorrencia.id]?.map((img, imgIndex) => (
                                                                 <Box key={imgIndex} position="relative" sx={{ width: 100, height: 100, overflow: 'hidden', borderRadius: '4px', border: '1px solid #ddd' }}>
